@@ -3,3 +3,15 @@ __pycache__/
 *.pyc
 data/chroma/
 data/pdf/
+data/ingest/
+data/memory/
+data/graph/
+.pytest_cache/
+.tmp/
+*.egg-info/
+pytest-cache-files-*/
+.env
+data/postgres/
+frontend/node_modules/
+frontend/dist/
+frontend/.env

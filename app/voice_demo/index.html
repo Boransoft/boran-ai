@@ -1,0 +1,56 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>boran.ai Voice Demo</title>
+    <link rel="stylesheet" href="/voice/demo/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>boran.ai Voice Test</h1>
+      <p class="muted">Desktop/mobile voice endpoint smoke page.</p>
+
+      <section class="card">
+        <label for="apiBase">API Base URL</label>
+        <input id="apiBase" type="text" placeholder="http://127.0.0.1:8000" />
+
+        <label for="token">Bearer Token</label>
+        <textarea id="token" rows="3" placeholder="Paste access token"></textarea>
+
+        <label for="language">Language (optional)</label>
+        <input id="language" type="text" value="tr" />
+      </section>
+
+      <section class="card">
+        <p><strong>Status:</strong> <span id="status">idle</span></p>
+        <p id="error" class="error"></p>
+
+        <div class="row">
+          <button id="startBtn" class="primary">Start Recording</button>
+          <button id="stopBtn" class="danger" disabled>Stop Recording</button>
+          <button id="sendBtn" disabled>Send to /voice/chat</button>
+        </div>
+
+        <p class="muted" id="formatInfo">Recorder format: -</p>
+      </section>
+
+      <section class="card">
+        <h2>Transcript</h2>
+        <pre id="transcript" class="output">-</pre>
+      </section>
+
+      <section class="card">
+        <h2>AI Reply</h2>
+        <pre id="reply" class="output">-</pre>
+      </section>
+
+      <section class="card">
+        <h2>Audio Reply</h2>
+        <audio id="player" controls></audio>
+      </section>
+    </main>
+
+    <script src="/voice/demo/app.js"></script>
+  </body>
+</html>

@@ -1,17 +1,18 @@
-# pyright: reportMissingImports=false
-
 from pdf2image import convert_from_path
 import pytesseract
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+from app.config import settings
+
+if settings.tesseract_cmd:
+    pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
 
 
-def extract_text_with_ocr(pdf_path: str) -> str:
+def extract_text_with_ocr(pdf_path: str, language: str = "eng+tur") -> str:
     pages = convert_from_path(pdf_path)
     full_text = []
 
     for page in pages:
-        text = pytesseract.image_to_string(page)
+        text = pytesseract.image_to_string(page, lang=language)
         if text and text.strip():
             full_text.append(text)
 

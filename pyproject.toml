@@ -10,5 +10,36 @@ requires-python = ">=3.10"
 dependencies = [
     "fastapi",
     "uvicorn",
-    "pydantic"
+    "pydantic",
+    "pydantic-settings",
+    "requests",
+    "chromadb",
+    "sentence-transformers",
+    "huggingface-hub",
+    "pypdf",
+    "pdf2image",
+    "pillow",
+    "pytesseract",
+    "python-docx",
+    "python-multipart",
+    "networkx",
+    "bcrypt",
+    "PyJWT",
+    "sqlalchemy",
+    "psycopg[binary]"
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "httpx"
+]
+
+voice = [
+    "faster-whisper",
+    "edge-tts",
+    "TTS"
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]

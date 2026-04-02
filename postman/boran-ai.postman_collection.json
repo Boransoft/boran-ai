@@ -1,0 +1,285 @@
+{
+  "info": {
+    "_postman_id": "5fbff82f-6fd8-4ee4-9cc8-boran-ai-collection",
+    "name": "boran.ai Local API",
+    "description": "Local test collection for boran.ai endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ingest PDF",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "{{pdf_file_path}}"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/ingest/pdf",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "ingest",
+            "pdf"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test(\"Ingest status ok\", function () {",
+              "  pm.expect(json.status).to.eql(\"ok\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ingest Folder",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/ingest/folder",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "ingest",
+            "folder"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"message\": \"Tragna metninde majikal piramitler neden onemli?\",\n  \"save_to_long_term\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/chat",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "chat"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test(\"Reply exists\", function () {",
+              "  pm.expect(json.reply).to.be.a(\"string\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Feedback Correction",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"original_answer\": \"Ana tema cikarilamadi\",\n  \"corrected_answer\": \"Metinde dua, manevi korunma ve ibadet pratikleri agirliklidir\",\n  \"note\": \"manual correction from postman\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/feedback/correction",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "feedback",
+            "correction"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test(\"Correction id exists\", function () {",
+              "  pm.expect(json.correction_id).to.be.a(\"string\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Long Term Memory",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/memory/long-term/{{user_id}}?limit=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "memory",
+            "long-term",
+            "{{user_id}}"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Knowledge Graph",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/knowledge/graph/{{user_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "knowledge",
+            "graph",
+            "{{user_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test(\"Graph shape\", function () {",
+              "  pm.expect(json.nodes).to.be.an(\"array\");",
+              "  pm.expect(json.edges).to.be.an(\"array\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "user_id",
+      "value": "postman-user"
+    },
+    {
+      "key": "pdf_file_path",
+      "value": "C:/Users/delib/Desktop/boran-ai/data/pdf/cevsen.pdf"
+    }
+  ]
+}

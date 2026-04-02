@@ -1,62 +1,63 @@
-from sentence_transformers import SentenceTransformer
-import chromadb
-import uuid
 import os
+import uuid
 
-CHROMA_PATH = "data/chroma"
-COLLECTION_NAME = "conversation_memory"
+import chromadb
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+from app.config import settings
+from app.rag.embeddings import encode_texts
 
 
 def get_collection():
-    os.makedirs(CHROMA_PATH, exist_ok=True)
-    client = chromadb.PersistentClient(path=CHROMA_PATH)
-    return client.get_or_create_collection(COLLECTION_NAME)
+    os.makedirs(settings.chroma_path, exist_ok=True)
+    client = chromadb.PersistentClient(path=settings.chroma_path)
+    return client.get_or_create_collection(settings.conversation_collection)
 
 
-def save_conversation(user_id: str, role: str, text: str):
+def save_conversation(user_id: str, role: str, text: str) -> None:
     if not text or not text.strip():
         return
 
     collection = get_collection()
-    embedding = model.encode([text]).tolist()[0]
+    embedding = encode_texts([text])[0]
 
     collection.add(
         ids=[str(uuid.uuid4())],
         documents=[text],
         embeddings=[embedding],
-        metadatas=[{
-            "user_id": user_id,
-            "role": role,
-            "source": "conversation"
-        }]
+        metadatas=[
+            {
+                "user_id": user_id,
+                "role": role,
+                "source": "conversation",
+            }
+        ],
     )
 
 
-def search_conversations(query: str, user_id: str | None = None, n_results: int = 3):
+def search_conversations(
+    query: str,
+    user_id: str | None = None,
+    n_results: int = 3,
+) -> list[str]:
     collection = get_collection()
-    embedding = model.encode([query]).tolist()
+    embedding = encode_texts([query])
 
+    where = {"user_id": user_id} if user_id else None
     results = collection.query(
         query_embeddings=embedding,
-        n_results=n_results
+        n_results=n_results,
+        where=where,
     )
 
-    docs = results.get("documents", [[]])
-    metas = results.get("metadatas", [[]])
-
-    if not docs or not docs[0]:
+    documents = results.get("documents", [[]])
+    metadata = results.get("metadatas", [[]])
+    if not documents or not documents[0]:
         return []
 
-    output = []
-    for i, doc in enumerate(docs[0]):
-        meta = metas[0][i] if metas and metas[0] else {}
-
-        if user_id and meta.get("user_id") != user_id:
-            continue
-
+    output: list[str] = []
+    for index, doc in enumerate(documents[0]):
+        meta = metadata[0][index] if metadata and metadata[0] else {}
         role = meta.get("role", "unknown")
-        output.append(f"[Konuşma | Rol: {role}]\n{doc}")
+        output.append(f"[Conversation role={role}]\n{doc}")
 
     return output
