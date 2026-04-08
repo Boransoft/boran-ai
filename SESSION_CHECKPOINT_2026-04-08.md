@@ -45,8 +45,24 @@ Bu checkpoint, 2026-04-07 checkpointinden sonra "conversation persistence icin o
 - Komut: `cd frontend && npm run build`
 - Sonuc: **Basarili**
 
+## 4) Component-Level Testler (MainAppPage/App)
+
+### Eklenen test dosyalari
+- `frontend/src/pages/MainAppPage.test.tsx`
+- `frontend/src/App.test.tsx`
+
+### Kapsanan senaryolar
+- `MainAppPage`:
+  - user-scoped session cache'ten draft + system state restore
+  - auth kullanicisi degisince mesaj baglaminin dogru user cache'ine gecmesi
+  - logoutta `session` + `recent_docs` temizlenirken persisted message history'nin korunmasi
+- `App`:
+  - 401/unauthorized callback tetiklenince cleanup + auth reset + system error state
+  - token zaten expired ise mount sirasinda cleanup + auth reset + system error state
+
+### Guncel test ozeti
+- Komut: `cd frontend && npm run test:run`
+- Sonuc: **5 test dosyasi, 18 test, hepsi basarili**
+
 ## Devam icin Notlar
-- Istenirse bir sonraki adimda `MainAppPage` seviyesinde UI davranisi icin component-level testler eklenebilir:
-  - login/logout akisinda user-scoped cache izolasyonu
-  - token expire/401 senaryosunda cleanup davranisi
-  - upload + mesaj + session cache birlikte restore akisi
+- Istenirse bir sonraki adimda `MainAppPage` icin upload/chat interaction akisi da (servis mocklari ile) e2e-lite testlerine genisletilebilir.
