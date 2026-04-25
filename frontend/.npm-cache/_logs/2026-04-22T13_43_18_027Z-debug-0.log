@@ -1,0 +1,243 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.6.2
+2 info using node@v24.13.0
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\delib\Desktop\boran-ai\frontend\.npmrc
+5 silly config load:file:C:\Users\delib\.npmrc
+6 silly config load:file:C:\Users\delib\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm install esbuild
+8 verbose argv "install" "--save-dev" "esbuild" "--offline" "false"
+9 verbose logfile logs-max:10 dir:C:\Users\delib\Desktop\boran-ai\frontend\.npm-cache\_logs\2026-04-22T13_43_18_027Z-
+10 verbose logfile C:\Users\delib\Desktop\boran-ai\frontend\.npm-cache\_logs\2026-04-22T13_43_18_027Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly packumentCache heap:4496293888 maxSize:1124073472 maxEntrySize:562036736
+13 silly logfile done cleaning log files
+14 verbose shrinkwrap failed to load node_modules/.package-lock.json out of date, updated: node_modules
+15 silly idealTree buildDeps
+16 silly fetch manifest esbuild@*
+17 silly packumentCache full:https://registry.npmjs.org/esbuild cache-miss
+18 http fetch GET https://registry.npmjs.org/esbuild attempt 1 failed with ECONNREFUSED
+19 http fetch GET https://registry.npmjs.org/esbuild attempt 2 failed with ECONNREFUSED
+20 http fetch GET https://registry.npmjs.org/esbuild attempt 3 failed with ECONNREFUSED
+21 http fetch GET https://registry.npmjs.org/esbuild attempt 4 failed with ECONNREFUSED
+22 http fetch GET https://registry.npmjs.org/esbuild attempt 5 failed with ECONNREFUSED
+23 http fetch GET https://registry.npmjs.org/esbuild attempt 6 failed with ECONNREFUSED
+24 http fetch GET 200 https://registry.npmjs.org/esbuild 500095ms (cache stale)
+25 silly packumentCache full:https://registry.npmjs.org/esbuild set size:1254708 disposed:false
+26 silly placeDep ROOT esbuild@0.28.0 REPLACE for: boran-ai-frontend@0.1.0 want: *
+27 silly fetch manifest @esbuild/aix-ppc64@0.28.0
+28 silly packumentCache full:https://registry.npmjs.org/@esbuild%2faix-ppc64 cache-miss
+29 silly fetch manifest @esbuild/android-arm@0.28.0
+30 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm cache-miss
+31 silly fetch manifest @esbuild/android-arm64@0.28.0
+32 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm64 cache-miss
+33 silly fetch manifest @esbuild/android-x64@0.28.0
+34 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-x64 cache-miss
+35 silly fetch manifest @esbuild/darwin-arm64@0.28.0
+36 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-arm64 cache-miss
+37 silly fetch manifest @esbuild/darwin-x64@0.28.0
+38 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-x64 cache-miss
+39 silly fetch manifest @esbuild/freebsd-arm64@0.28.0
+40 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 cache-miss
+41 silly fetch manifest @esbuild/freebsd-x64@0.28.0
+42 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-x64 cache-miss
+43 silly fetch manifest @esbuild/linux-arm@0.28.0
+44 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm cache-miss
+45 silly fetch manifest @esbuild/linux-arm64@0.28.0
+46 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm64 cache-miss
+47 silly fetch manifest @esbuild/linux-ia32@0.28.0
+48 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ia32 cache-miss
+49 silly fetch manifest @esbuild/linux-loong64@0.28.0
+50 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-loong64 cache-miss
+51 silly fetch manifest @esbuild/linux-mips64el@0.28.0
+52 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-mips64el cache-miss
+53 silly fetch manifest @esbuild/linux-ppc64@0.28.0
+54 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ppc64 cache-miss
+55 silly fetch manifest @esbuild/linux-riscv64@0.28.0
+56 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-riscv64 cache-miss
+57 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-x64 attempt 1 failed with ECONNREFUSED
+58 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-arm64 attempt 1 failed with ECONNREFUSED
+59 http fetch GET https://registry.npmjs.org/@esbuild%2faix-ppc64 attempt 1 failed with ECONNREFUSED
+60 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-arm attempt 1 failed with ECONNREFUSED
+61 http fetch GET https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 attempt 1 failed with ECONNREFUSED
+62 http fetch GET https://registry.npmjs.org/@esbuild%2fdarwin-x64 attempt 1 failed with ECONNREFUSED
+63 http fetch GET https://registry.npmjs.org/@esbuild%2ffreebsd-x64 attempt 1 failed with ECONNREFUSED
+64 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-loong64 attempt 1 failed with ECONNREFUSED
+65 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-arm attempt 1 failed with ECONNREFUSED
+66 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-ppc64 attempt 1 failed with ECONNREFUSED
+67 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-ia32 attempt 1 failed with ECONNREFUSED
+68 http fetch GET https://registry.npmjs.org/@esbuild%2fdarwin-arm64 attempt 1 failed with ECONNREFUSED
+69 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-arm64 attempt 1 failed with ECONNREFUSED
+70 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-mips64el attempt 1 failed with ECONNREFUSED
+71 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-riscv64 attempt 1 failed with ECONNREFUSED
+72 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-x64 attempt 2 failed with ECONNREFUSED
+73 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-arm64 attempt 2 failed with ECONNREFUSED
+74 http fetch GET https://registry.npmjs.org/@esbuild%2faix-ppc64 attempt 2 failed with ECONNREFUSED
+75 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-arm attempt 2 failed with ECONNREFUSED
+76 http fetch GET https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 attempt 2 failed with ECONNREFUSED
+77 http fetch GET https://registry.npmjs.org/@esbuild%2fdarwin-x64 attempt 2 failed with ECONNREFUSED
+78 http fetch GET https://registry.npmjs.org/@esbuild%2ffreebsd-x64 attempt 2 failed with ECONNREFUSED
+79 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-loong64 attempt 2 failed with ECONNREFUSED
+80 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-arm attempt 2 failed with ECONNREFUSED
+81 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-ppc64 attempt 2 failed with ECONNREFUSED
+82 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-ia32 attempt 2 failed with ECONNREFUSED
+83 http fetch GET https://registry.npmjs.org/@esbuild%2fdarwin-arm64 attempt 2 failed with ECONNREFUSED
+84 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-arm64 attempt 2 failed with ECONNREFUSED
+85 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-mips64el attempt 2 failed with ECONNREFUSED
+86 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-riscv64 attempt 2 failed with ECONNREFUSED
+87 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-x64 attempt 3 failed with ECONNREFUSED
+88 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-arm64 attempt 3 failed with ECONNREFUSED
+89 http fetch GET https://registry.npmjs.org/@esbuild%2faix-ppc64 attempt 3 failed with ECONNREFUSED
+90 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-arm attempt 3 failed with ECONNREFUSED
+91 http fetch GET https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 attempt 3 failed with ECONNREFUSED
+92 http fetch GET https://registry.npmjs.org/@esbuild%2fdarwin-x64 attempt 3 failed with ECONNREFUSED
+93 http fetch GET https://registry.npmjs.org/@esbuild%2ffreebsd-x64 attempt 3 failed with ECONNREFUSED
+94 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-loong64 attempt 3 failed with ECONNREFUSED
+95 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-arm attempt 3 failed with ECONNREFUSED
+96 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-ppc64 attempt 3 failed with ECONNREFUSED
+97 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-ia32 attempt 3 failed with ECONNREFUSED
+98 http fetch GET https://registry.npmjs.org/@esbuild%2fdarwin-arm64 attempt 3 failed with ECONNREFUSED
+99 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-arm64 attempt 3 failed with ECONNREFUSED
+100 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-mips64el attempt 3 failed with ECONNREFUSED
+101 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-riscv64 attempt 3 failed with ECONNREFUSED
+102 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-x64 attempt 4 failed with ECONNREFUSED
+103 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-arm64 attempt 4 failed with ECONNREFUSED
+104 http fetch GET https://registry.npmjs.org/@esbuild%2faix-ppc64 attempt 4 failed with ECONNREFUSED
+105 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-arm attempt 4 failed with ECONNREFUSED
+106 http fetch GET https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 attempt 4 failed with ECONNREFUSED
+107 http fetch GET https://registry.npmjs.org/@esbuild%2fdarwin-x64 attempt 4 failed with ECONNREFUSED
+108 http fetch GET https://registry.npmjs.org/@esbuild%2ffreebsd-x64 attempt 4 failed with ECONNREFUSED
+109 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-loong64 attempt 4 failed with ECONNREFUSED
+110 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-arm attempt 4 failed with ECONNREFUSED
+111 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-ppc64 attempt 4 failed with ECONNREFUSED
+112 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-ia32 attempt 4 failed with ECONNREFUSED
+113 http fetch GET https://registry.npmjs.org/@esbuild%2fdarwin-arm64 attempt 4 failed with ECONNREFUSED
+114 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-arm64 attempt 4 failed with ECONNREFUSED
+115 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-mips64el attempt 4 failed with ECONNREFUSED
+116 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-riscv64 attempt 4 failed with ECONNREFUSED
+117 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-x64 attempt 5 failed with ECONNREFUSED
+118 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-arm64 attempt 5 failed with ECONNREFUSED
+119 http fetch GET https://registry.npmjs.org/@esbuild%2faix-ppc64 attempt 5 failed with ECONNREFUSED
+120 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-arm attempt 5 failed with ECONNREFUSED
+121 http fetch GET https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 attempt 5 failed with ECONNREFUSED
+122 http fetch GET https://registry.npmjs.org/@esbuild%2fdarwin-x64 attempt 5 failed with ECONNREFUSED
+123 http fetch GET https://registry.npmjs.org/@esbuild%2ffreebsd-x64 attempt 5 failed with ECONNREFUSED
+124 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-loong64 attempt 5 failed with ECONNREFUSED
+125 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-arm attempt 5 failed with ECONNREFUSED
+126 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-ppc64 attempt 5 failed with ECONNREFUSED
+127 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-ia32 attempt 5 failed with ECONNREFUSED
+128 http fetch GET https://registry.npmjs.org/@esbuild%2fdarwin-arm64 attempt 5 failed with ECONNREFUSED
+129 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-arm64 attempt 5 failed with ECONNREFUSED
+130 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-mips64el attempt 5 failed with ECONNREFUSED
+131 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-riscv64 attempt 5 failed with ECONNREFUSED
+132 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-x64 attempt 6 failed with ECONNREFUSED
+133 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-arm64 attempt 6 failed with ECONNREFUSED
+134 http fetch GET https://registry.npmjs.org/@esbuild%2faix-ppc64 attempt 6 failed with ECONNREFUSED
+135 http fetch GET https://registry.npmjs.org/@esbuild%2fandroid-arm attempt 6 failed with ECONNREFUSED
+136 http fetch GET https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 attempt 6 failed with ECONNREFUSED
+137 http fetch GET https://registry.npmjs.org/@esbuild%2fdarwin-x64 attempt 6 failed with ECONNREFUSED
+138 http fetch GET https://registry.npmjs.org/@esbuild%2ffreebsd-x64 attempt 6 failed with ECONNREFUSED
+139 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-loong64 attempt 6 failed with ECONNREFUSED
+140 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-arm attempt 6 failed with ECONNREFUSED
+141 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-ppc64 attempt 6 failed with ECONNREFUSED
+142 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-ia32 attempt 6 failed with ECONNREFUSED
+143 http fetch GET https://registry.npmjs.org/@esbuild%2fdarwin-arm64 attempt 6 failed with ECONNREFUSED
+144 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-arm64 attempt 6 failed with ECONNREFUSED
+145 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-mips64el attempt 6 failed with ECONNREFUSED
+146 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-riscv64 attempt 6 failed with ECONNREFUSED
+147 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fandroid-x64 500152ms (cache stale)
+148 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-x64 set size:195551 disposed:false
+149 silly fetch manifest @esbuild/linux-s390x@0.28.0
+150 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-s390x cache-miss
+151 http fetch GET 200 https://registry.npmjs.org/@esbuild%2faix-ppc64 500157ms (cache stale)
+152 silly packumentCache full:https://registry.npmjs.org/@esbuild%2faix-ppc64 set size:64314 disposed:false
+153 silly fetch manifest @esbuild/linux-x64@0.28.0
+154 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-x64 cache-miss
+155 http fetch GET 200 https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 500154ms (cache stale)
+156 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 set size:198853 disposed:false
+157 silly fetch manifest @esbuild/netbsd-arm64@0.28.0
+158 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fnetbsd-arm64 cache-miss
+159 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fandroid-arm 500160ms (cache stale)
+160 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm set size:221749 disposed:false
+161 silly fetch manifest @esbuild/netbsd-x64@0.28.0
+162 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fnetbsd-x64 cache-miss
+163 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fandroid-arm64 500161ms (cache stale)
+164 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm64 set size:200684 disposed:false
+165 silly fetch manifest @esbuild/openbsd-arm64@0.28.0
+166 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenbsd-arm64 cache-miss
+167 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fdarwin-x64 500161ms (cache stale)
+168 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-x64 set size:196195 disposed:false
+169 silly fetch manifest @esbuild/openbsd-x64@0.28.0
+170 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenbsd-x64 cache-miss
+171 http fetch GET 200 https://registry.npmjs.org/@esbuild%2ffreebsd-x64 500160ms (cache stale)
+172 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-x64 set size:197070 disposed:false
+173 silly fetch manifest @esbuild/openharmony-arm64@0.28.0
+174 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenharmony-arm64 cache-miss
+175 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-loong64 500161ms (cache stale)
+176 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-loong64 set size:252211 disposed:false
+177 silly fetch manifest @esbuild/sunos-x64@0.28.0
+178 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fsunos-x64 cache-miss
+179 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-arm 500166ms (cache stale)
+180 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm set size:195140 disposed:false
+181 silly fetch manifest @esbuild/win32-arm64@0.28.0
+182 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-arm64 cache-miss
+183 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-ppc64 500165ms (cache stale)
+184 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ppc64 set size:199310 disposed:false
+185 silly fetch manifest @esbuild/win32-ia32@0.28.0
+186 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-ia32 cache-miss
+187 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-ia32 500169ms (cache stale)
+188 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ia32 set size:196150 disposed:false
+189 silly fetch manifest @esbuild/win32-x64@0.28.0
+190 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-x64 cache-miss
+191 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-arm64 500172ms (cache stale)
+192 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm64 set size:197274 disposed:false
+193 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fdarwin-arm64 500179ms (cache stale)
+194 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-arm64 set size:197958 disposed:false
+195 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-riscv64 500180ms (cache stale)
+196 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-riscv64 set size:198981 disposed:false
+197 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-mips64el 500184ms (cache stale)
+198 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-mips64el set size:201062 disposed:false
+199 http fetch GET https://registry.npmjs.org/@esbuild%2fnetbsd-arm64 attempt 1 failed with ECONNREFUSED
+200 http fetch GET https://registry.npmjs.org/@esbuild%2fopenbsd-arm64 attempt 1 failed with ECONNREFUSED
+201 http fetch GET https://registry.npmjs.org/@esbuild%2fopenharmony-arm64 attempt 1 failed with ECONNREFUSED
+202 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-s390x attempt 1 failed with ECONNREFUSED
+203 http fetch GET https://registry.npmjs.org/@esbuild%2fwin32-ia32 attempt 1 failed with ECONNREFUSED
+204 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-x64 attempt 1 failed with ECONNREFUSED
+205 http fetch GET https://registry.npmjs.org/@esbuild%2fnetbsd-x64 attempt 1 failed with ECONNREFUSED
+206 http fetch GET https://registry.npmjs.org/@esbuild%2fopenbsd-x64 attempt 1 failed with ECONNREFUSED
+207 http fetch GET https://registry.npmjs.org/@esbuild%2fsunos-x64 attempt 1 failed with ECONNREFUSED
+208 http fetch GET https://registry.npmjs.org/@esbuild%2fwin32-arm64 attempt 1 failed with ECONNREFUSED
+209 http fetch GET https://registry.npmjs.org/@esbuild%2fwin32-x64 attempt 1 failed with ECONNREFUSED
+210 http fetch GET https://registry.npmjs.org/@esbuild%2fnetbsd-arm64 attempt 2 failed with ECONNREFUSED
+211 http fetch GET https://registry.npmjs.org/@esbuild%2fopenbsd-arm64 attempt 2 failed with ECONNREFUSED
+212 http fetch GET https://registry.npmjs.org/@esbuild%2fopenharmony-arm64 attempt 2 failed with ECONNREFUSED
+213 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-s390x attempt 2 failed with ECONNREFUSED
+214 http fetch GET https://registry.npmjs.org/@esbuild%2fwin32-ia32 attempt 2 failed with ECONNREFUSED
+215 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-x64 attempt 2 failed with ECONNREFUSED
+216 http fetch GET https://registry.npmjs.org/@esbuild%2fnetbsd-x64 attempt 2 failed with ECONNREFUSED
+217 http fetch GET https://registry.npmjs.org/@esbuild%2fopenbsd-x64 attempt 2 failed with ECONNREFUSED
+218 http fetch GET https://registry.npmjs.org/@esbuild%2fsunos-x64 attempt 2 failed with ECONNREFUSED
+219 http fetch GET https://registry.npmjs.org/@esbuild%2fwin32-arm64 attempt 2 failed with ECONNREFUSED
+220 http fetch GET https://registry.npmjs.org/@esbuild%2fwin32-x64 attempt 2 failed with ECONNREFUSED
+221 http fetch GET https://registry.npmjs.org/@esbuild%2fnetbsd-arm64 attempt 3 failed with ECONNREFUSED
+222 http fetch GET https://registry.npmjs.org/@esbuild%2fopenbsd-arm64 attempt 3 failed with ECONNREFUSED
+223 http fetch GET https://registry.npmjs.org/@esbuild%2fopenharmony-arm64 attempt 3 failed with ECONNREFUSED
+224 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-s390x attempt 3 failed with ECONNREFUSED
+225 http fetch GET https://registry.npmjs.org/@esbuild%2fwin32-ia32 attempt 3 failed with ECONNREFUSED
+226 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-x64 attempt 3 failed with ECONNREFUSED
+227 http fetch GET https://registry.npmjs.org/@esbuild%2fnetbsd-x64 attempt 3 failed with ECONNREFUSED
+228 http fetch GET https://registry.npmjs.org/@esbuild%2fopenbsd-x64 attempt 3 failed with ECONNREFUSED
+229 http fetch GET https://registry.npmjs.org/@esbuild%2fsunos-x64 attempt 3 failed with ECONNREFUSED
+230 http fetch GET https://registry.npmjs.org/@esbuild%2fwin32-arm64 attempt 3 failed with ECONNREFUSED
+231 http fetch GET https://registry.npmjs.org/@esbuild%2fwin32-x64 attempt 3 failed with ECONNREFUSED
+232 http fetch GET https://registry.npmjs.org/@esbuild%2fnetbsd-arm64 attempt 4 failed with ECONNREFUSED
+233 http fetch GET https://registry.npmjs.org/@esbuild%2fopenbsd-arm64 attempt 4 failed with ECONNREFUSED
+234 http fetch GET https://registry.npmjs.org/@esbuild%2fopenharmony-arm64 attempt 4 failed with ECONNREFUSED
+235 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-s390x attempt 4 failed with ECONNREFUSED
+236 http fetch GET https://registry.npmjs.org/@esbuild%2fwin32-ia32 attempt 4 failed with ECONNREFUSED
+237 http fetch GET https://registry.npmjs.org/@esbuild%2flinux-x64 attempt 4 failed with ECONNREFUSED
+238 http fetch GET https://registry.npmjs.org/@esbuild%2fnetbsd-x64 attempt 4 failed with ECONNREFUSED
+239 http fetch GET https://registry.npmjs.org/@esbuild%2fopenbsd-x64 attempt 4 failed with ECONNREFUSED
+240 http fetch GET https://registry.npmjs.org/@esbuild%2fsunos-x64 attempt 4 failed with ECONNREFUSED
+241 http fetch GET https://registry.npmjs.org/@esbuild%2fwin32-arm64 attempt 4 failed with ECONNREFUSED
+242 http fetch GET https://registry.npmjs.org/@esbuild%2fwin32-x64 attempt 4 failed with ECONNREFUSED

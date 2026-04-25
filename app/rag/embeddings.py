@@ -4,11 +4,15 @@ import math
 import re
 import threading
 from pathlib import Path
+from time import perf_counter
+from typing import TYPE_CHECKING
 
 import requests
-from sentence_transformers import SentenceTransformer
 
 from app.config import settings
+
+if TYPE_CHECKING:
+    from sentence_transformers import SentenceTransformer
 
 
 FALLBACK_DIM = 384
@@ -57,7 +61,15 @@ def _can_reach_huggingface(model_name: str, timeout_seconds: float) -> bool:
         return False
 
 
-def _load_from_local_cache(model_name: str, cache_path: Path) -> SentenceTransformer:
+def _load_sentence_transformer_class():
+    # Lazy import prevents heavy torch/sentence-transformers load during API startup.
+    from sentence_transformers import SentenceTransformer  # type: ignore
+
+    return SentenceTransformer
+
+
+def _load_from_local_cache(model_name: str, cache_path: Path) -> "SentenceTransformer":
+    SentenceTransformer = _load_sentence_transformer_class()
     return SentenceTransformer(
         model_name_or_path=model_name,
         cache_folder=str(cache_path),
@@ -65,7 +77,8 @@ def _load_from_local_cache(model_name: str, cache_path: Path) -> SentenceTransfo
     )
 
 
-def _load_with_download(model_name: str, cache_path: Path) -> SentenceTransformer:
+def _load_with_download(model_name: str, cache_path: Path) -> "SentenceTransformer":
+    SentenceTransformer = _load_sentence_transformer_class()
     return SentenceTransformer(
         model_name_or_path=model_name,
         cache_folder=str(cache_path),
@@ -85,10 +98,12 @@ def _initialize_encoder() -> None:
         if _state["mode"] != "uninitialized":
             return
 
+        init_started = perf_counter()
         model_name = _resolve_model_name()
         _state["resolved_model"] = model_name
         cache_path = Path(settings.embedding_cache_path)
         cache_path.mkdir(parents=True, exist_ok=True)
+        logger.info("embedding_lazy_init_start model=%s cache_path=%s", model_name, cache_path)
 
         if any(cache_path.iterdir()):
             try:
@@ -96,6 +111,12 @@ def _initialize_encoder() -> None:
                 _state["model"] = model
                 _state["mode"] = "cache"
                 _state["reason"] = "loaded from local cache"
+                logger.info(
+                    "embedding_lazy_init_done mode=%s duration_s=%.3f reason=%s",
+                    _state["mode"],
+                    perf_counter() - init_started,
+                    _state["reason"],
+                )
                 return
             except Exception as cache_exc:
                 cache_reason = f"cache miss or cache load error: {cache_exc}"
@@ -111,16 +132,34 @@ def _initialize_encoder() -> None:
                 _state["model"] = model
                 _state["mode"] = "downloaded"
                 _state["reason"] = "downloaded and cached"
+                logger.info(
+                    "embedding_lazy_init_done mode=%s duration_s=%.3f reason=%s",
+                    _state["mode"],
+                    perf_counter() - init_started,
+                    _state["reason"],
+                )
                 return
             except Exception as download_exc:
                 _state["mode"] = "fallback_hash"
                 _state["reason"] = f"download failed: {download_exc}"
                 logger.warning("Embedding model fallback enabled. Reason: %s", _state["reason"])
+                logger.info(
+                    "embedding_lazy_init_done mode=%s duration_s=%.3f reason=%s",
+                    _state["mode"],
+                    perf_counter() - init_started,
+                    _state["reason"],
+                )
                 return
 
         _state["mode"] = "fallback_hash"
         _state["reason"] = cache_reason + "; no internet/download disabled"
         logger.warning("Embedding model fallback enabled. Reason: %s", _state["reason"])
+        logger.info(
+            "embedding_lazy_init_done mode=%s duration_s=%.3f reason=%s",
+            _state["mode"],
+            perf_counter() - init_started,
+            _state["reason"],
+        )
 
 
 def get_embedding_backend_info() -> dict[str, str]:

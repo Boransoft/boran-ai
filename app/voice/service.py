@@ -1,18 +1,20 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from time import perf_counter
 
 from fastapi import UploadFile
 
 from app.config import settings
-from app.services.assistant import build_reply
 from app.voice.stt import STTError, stt_service
 from app.voice.tts import TTSError, tts_service
 
+logger = logging.getLogger("uvicorn.error")
 
 SUPPORTED_AUDIO_MIME_TYPES = (
     "audio/webm",
@@ -203,6 +205,24 @@ class VoiceService:
             raise FileNotFoundError(normalized)
         return path
 
+    def warmup(self) -> dict[str, object]:
+        started = perf_counter()
+        stt_info = stt_service.warmup()
+        tts_info = tts_service.warmup()
+        total = round(perf_counter() - started, 4)
+        logger.info(
+            "voice_warmup total=%.3fs stt_ready=%s tts_ready=%s",
+            total,
+            stt_info.get("ready", False),
+            tts_info.get("ready", False),
+        )
+        return {
+            "status": "ok",
+            "total_s": total,
+            "stt": stt_info,
+            "tts": tts_info,
+        }
+
     def voice_chat(
         self,
         user_id: str,
@@ -211,33 +231,92 @@ class VoiceService:
         save_to_long_term: bool = True,
         include_reflection_context: bool | None = None,
         audio_format: str | None = None,
-    ) -> dict[str, str]:
+        debug_timing: bool = False,
+    ) -> dict[str, object]:
+        total_start = perf_counter()
+        timings: dict[str, float] = {}
+
         include_reflection = (
             settings.voice_include_reflection_default
             if include_reflection_context is None
             else bool(include_reflection_context)
         )
 
+        stage_start = perf_counter()
         transcribed = self.transcribe_audio(user_id=user_id, upload=upload, language=language)
+        timings["stt_s"] = round(perf_counter() - stage_start, 4)
         transcript = transcribed.get("text", "").strip()
         if not transcript:
             raise STTError("transcription returned empty text")
+
+        stage_start = perf_counter()
+        assistant_import_start = perf_counter()
+        # Lazy import avoids loading assistant/embedding stack during app startup.
+        from app.services.assistant import build_reply
+        timings["assistant_import_s"] = round(perf_counter() - assistant_import_start, 4)
 
         chat_result = build_reply(
             user_id=user_id,
             message=transcript,
             save_to_long_term=save_to_long_term,
             include_reflection_context=include_reflection,
+            debug_timing=debug_timing,
         )
-        reply_text = str(chat_result.get("reply", "")).strip()
+        timings["assistant_total_s"] = round(perf_counter() - stage_start, 4)
 
+        reply_text = str(chat_result.get("reply", "")).strip()
+        tts_text = reply_text
+        tts_clip_warning = ""
+        max_tts_chars = max(120, int(settings.voice_tts_max_chars))
+        if len(tts_text) > max_tts_chars:
+            tts_text = tts_text[: max_tts_chars - 3] + "..."
+            tts_clip_warning = f"TTS input truncated to {max_tts_chars} chars for lower latency."
+
+        stage_start = perf_counter()
         tts_result = self.synthesize_text(
             user_id=user_id,
-            text=reply_text,
+            text=tts_text,
             audio_format=audio_format,
         )
+        timings["tts_s"] = round(perf_counter() - stage_start, 4)
+        timings["total_s"] = round(perf_counter() - total_start, 4)
 
-        return {
+        assistant_timing = chat_result.get("debug_timing", {})
+        if isinstance(assistant_timing, dict):
+            for key in (
+                "memory_retrieval_s",
+                "graph_reasoning_context_s",
+                "context_preparation_s",
+                "lm_response_s",
+            ):
+                value = assistant_timing.get(key)
+                if isinstance(value, (int, float)):
+                    timings[key] = round(float(value), 4)
+
+        step_candidates = {
+            "stt_s": float(timings.get("stt_s", 0.0)),
+            "context_preparation_s": float(timings.get("context_preparation_s", 0.0)),
+            "lm_response_s": float(timings.get("lm_response_s", 0.0)),
+            "tts_s": float(timings.get("tts_s", 0.0)),
+        }
+        slowest_step, slowest_duration = max(step_candidates.items(), key=lambda item: item[1])
+        timings["slowest_step_duration_s"] = round(float(slowest_duration), 4)
+
+        warning_parts = [part for part in [tts_result.get("warning", ""), tts_clip_warning] if part]
+        warning_text = " ".join(warning_parts)
+
+        logger.info(
+            "voice_chat_timing user=%s total=%.3fs stt=%.3fs context=%.3fs lm=%.3fs tts=%.3fs slowest=%s",
+            user_id,
+            timings.get("total_s", 0.0),
+            timings.get("stt_s", 0.0),
+            timings.get("context_preparation_s", 0.0),
+            timings.get("lm_response_s", 0.0),
+            timings.get("tts_s", 0.0),
+            slowest_step,
+        )
+
+        response: dict[str, object] = {
             "status": "ok",
             "user_id": user_id,
             "transcript": transcript,
@@ -247,9 +326,19 @@ class VoiceService:
             "audio_format": tts_result.get("audio_format", ""),
             "audio_file": tts_result.get("audio_file", ""),
             "audio_url": tts_result.get("audio_url", ""),
-            "warning": tts_result.get("warning", ""),
+            "warning": warning_text,
             "upload_mime_type": transcribed.get("upload_mime_type", ""),
+            "tts_voice": tts_result.get("tts_voice", ""),
+            "tts_rate": tts_result.get("tts_rate", ""),
+            "tts_pitch": tts_result.get("tts_pitch", ""),
         }
+        if debug_timing:
+            response["debug_timing"] = {
+                **timings,
+                "slowest_step": slowest_step,
+                "assistant": assistant_timing if isinstance(assistant_timing, dict) else {},
+            }
+        return response
 
     def health(self) -> dict[str, object]:
         return {

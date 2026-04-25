@@ -1,0 +1,37 @@
+INFO:     Started server process [13084]
+INFO:     Waiting for application startup.
+INFO:     startup_begin
+INFO:     startup_step scheduler_start_s=0.002
+INFO:     startup_step voice_warmup_skipped lazy_init_enabled=true voice_warmup_enabled_setting=True
+INFO:     startup_done total_s=0.009
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|##########| 103/103 [00:00<00:00, 2958.87it/s]
+[1mBertModel LOAD REPORT[0m from: sentence-transformers/all-MiniLM-L6-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+INFO:     retrieval_debug user_id=user_6ed2f987773d49788e49c6c7ab49968d stage=recent_scope fallback=False hits=2 source_filters=[] file_filters=[] matched_sources=['src_f57e6982c4a04cdd889967855c4d4831', 'src_f57e6982c4a04cdd889967855c4d4831']
+INFO:     chat_timing user=user_6ed2f987773d49788e49c6c7ab49968d total=74.513s context=47.497s lm=19.025s post=7.990s
+INFO:     chat_retrieval user=user_6ed2f987773d49788e49c6c7ab49968d context_scope= doc_context_hits=2 matched_source_ids=['src_f57e6982c4a04cdd889967855c4d4831', 'src_f57e6982c4a04cdd889967855c4d4831'] matched_file_names=['Mustafa Ýloðlu - Gizli Ýlimler Hazinesi 1. Kitap.pdf', 'Mustafa Ýloðlu - Gizli Ýlimler Hazinesi 1. Kitap.pdf'] fallback_used=False
+INFO:     retrieval_debug user_id=user_6ed2f987773d49788e49c6c7ab49968d stage=recent_scope fallback=False hits=2 source_filters=[] file_filters=[] matched_sources=['src_4171c80142cb42a2a084cfdf6eac5ee7', 'src_4171c80142cb42a2a084cfdf6eac5ee7']
+INFO:     chat_timing user=user_6ed2f987773d49788e49c6c7ab49968d total=14.598s context=2.120s lm=5.937s post=6.541s
+INFO:     chat_retrieval user=user_6ed2f987773d49788e49c6c7ab49968d context_scope= doc_context_hits=2 matched_source_ids=['src_4171c80142cb42a2a084cfdf6eac5ee7', 'src_4171c80142cb42a2a084cfdf6eac5ee7'] matched_file_names=['muhyiddin-ibn-arabinin-risaleleri-1.pdf', 'muhyiddin-ibn-arabinin-risaleleri-1.pdf'] fallback_used=False
+INFO:     retrieval_debug user_id=user_6ed2f987773d49788e49c6c7ab49968d stage=recent_scope fallback=False hits=2 source_filters=[] file_filters=[] matched_sources=['src_4171c80142cb42a2a084cfdf6eac5ee7', 'src_4171c80142cb42a2a084cfdf6eac5ee7']
+INFO:     chat_timing user=user_6ed2f987773d49788e49c6c7ab49968d total=16.788s context=3.228s lm=7.020s post=6.540s
+INFO:     chat_retrieval user=user_6ed2f987773d49788e49c6c7ab49968d context_scope= doc_context_hits=2 matched_source_ids=['src_4171c80142cb42a2a084cfdf6eac5ee7', 'src_4171c80142cb42a2a084cfdf6eac5ee7'] matched_file_names=['muhyiddin-ibn-arabinin-risaleleri-1.pdf', 'muhyiddin-ibn-arabinin-risaleleri-1.pdf'] fallback_used=False
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+forrtl: error (200): program aborting due to window-CLOSE event
+Image              PC                Routine            Line        Source             
+KERNELBASE.dll     00007FFE60EFA3CD  Unknown               Unknown  Unknown
+KERNEL32.DLL       00007FFE628EE8D7  Unknown               Unknown  Unknown
+ntdll.dll          00007FFE6352C3FC  Unknown               Unknown  Unknown

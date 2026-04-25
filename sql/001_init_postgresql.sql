@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) UNIQUE,
   hashed_password VARCHAR(255),
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
   display_name VARCHAR(255),
   last_login_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

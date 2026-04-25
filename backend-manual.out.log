@@ -1,0 +1,7 @@
+INFO:     127.0.0.1:53911 - "OPTIONS /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53911 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58251 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56342 - "OPTIONS /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56342 - "POST /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52726 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52742 - "POST /chat HTTP/1.1" 200 OK

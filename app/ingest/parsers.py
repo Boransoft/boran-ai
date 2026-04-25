@@ -23,12 +23,13 @@ SUPPORTED_EXTENSIONS = {
     ".png",
     ".jpg",
     ".jpeg",
+    ".webp",
     ".tiff",
     ".bmp",
 }
 
 
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tiff", ".bmp"}
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".tiff", ".bmp"}
 DATASET_EXTENSIONS = {".csv", ".json", ".jsonl"}
 
 

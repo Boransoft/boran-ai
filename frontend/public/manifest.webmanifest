@@ -1,11 +1,11 @@
 {
-  "name": "boran.ai",
-  "short_name": "boran.ai",
+  "name": "boranizm",
+  "short_name": "boranizm",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
-  "description": "Mobile-first personal AI assistant frontend.",
+  "description": "boranizm mobile-first personal AI assistant frontend.",
   "icons": [
     {
       "src": "/icons/icon.svg",

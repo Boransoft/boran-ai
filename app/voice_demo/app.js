@@ -176,6 +176,12 @@
 
       transcriptEl.textContent = payload.transcript || "-";
       replyEl.textContent = payload.reply || "-";
+      const selectedVoice = payload.tts_voice || "-";
+      const selectedRate = payload.tts_rate || "-";
+      const selectedPitch = payload.tts_pitch || "-";
+      formatInfoEl.textContent =
+        `Recorder format: ${state.mimeType || "-"} | ` +
+        `TTS voice: ${selectedVoice} | rate: ${selectedRate} | pitch: ${selectedPitch}`;
 
       if (!payload.audio_url) {
         throw new Error("audio_url missing in /voice/chat response");

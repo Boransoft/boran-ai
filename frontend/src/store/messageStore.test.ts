@@ -81,4 +81,18 @@ describe("messageStore persistence", () => {
     expect(useMessageStore.getState().messages).toHaveLength(0);
     expect(localStorage.getItem(key)).toBeNull();
   });
+
+  it("updates an existing message content and status", () => {
+    useMessageStore.getState().setActiveUser("u1");
+    useMessageStore.getState().addMessage(sampleMessage("m1", "Belge isleniyor..."));
+
+    useMessageStore.getState().updateMessage("m1", {
+      content: "Belge islendi. Artik bu belge hakkinda soru sorabilirsin.",
+      status: "done",
+    });
+
+    const updated = useMessageStore.getState().messages.find((item) => item.id === "m1");
+    expect(updated?.content).toContain("Belge islendi");
+    expect(updated?.status).toBe("done");
+  });
 });

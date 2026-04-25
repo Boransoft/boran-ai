@@ -9,6 +9,7 @@ from app.config import settings
 from app.db.models import KnowledgeEdge, MemoryItem, User
 from app.db.session import get_session
 from app.learning.concepts import Concept, ExtractionResult, Relation, normalize_term
+from app.learning.graph_relations import canonicalize_relation, normalize_relation
 
 
 def _edge_key(source: str, relation: str, target: str) -> str:
@@ -118,13 +119,18 @@ class LearningGraphStore:
 
         with get_session() as session:
             for relation in relations:
+                source, rel, target = canonicalize_relation(
+                    relation.source,
+                    relation.relation,
+                    relation.target,
+                )
                 existing = session.execute(
                     select(KnowledgeEdge).where(
                         and_(
                             KnowledgeEdge.user_id == user_db_id,
-                            KnowledgeEdge.source_node == relation.source,
-                            KnowledgeEdge.relation == relation.relation,
-                            KnowledgeEdge.target_node == relation.target,
+                            KnowledgeEdge.source_node == source,
+                            KnowledgeEdge.relation == rel,
+                            KnowledgeEdge.target_node == target,
                         )
                     )
                 ).scalar_one_or_none()
@@ -135,9 +141,9 @@ class LearningGraphStore:
                     session.add(
                         KnowledgeEdge(
                             user_id=user_db_id,
-                            source_node=relation.source,
-                            relation=relation.relation,
-                            target_node=relation.target,
+                            source_node=source,
+                            relation=rel,
+                            target_node=target,
                             weight=int(relation.weight),
                             metadata_json={},
                         )
@@ -175,14 +181,27 @@ class LearningGraphStore:
 
             edges_added = 0
             for relation in result.relations:
-                source = normalize_term(relation.source)
-                target = normalize_term(relation.target)
+                source, relation_name, target = canonicalize_relation(
+                    relation.source,
+                    relation.relation,
+                    relation.target,
+                )
                 if not source or not target or source == target:
                     continue
-                key = _edge_key(source, relation.relation, target)
+                key = _edge_key(source, relation_name, target)
                 if key not in edge_store:
                     edges_added += 1
-                edge_store[key] = int(edge_store.get(key, 0)) + int(relation.weight)
+                existing = edge_store.get(key, 0)
+                if isinstance(existing, dict):
+                    current_weight = int(existing.get("weight", 0))
+                    current_frequency = int(existing.get("frequency", 0))
+                else:
+                    current_weight = int(existing)
+                    current_frequency = int(existing)
+                edge_store[key] = {
+                    "weight": current_weight + int(relation.weight),
+                    "frequency": current_frequency + 1,
+                }
 
             self._save()
 
@@ -224,16 +243,23 @@ class LearningGraphStore:
 
         graph = self._data.get(user_id, {"concepts": {}, "edges": {}})
         edges: list[dict[str, object]] = []
-        for raw_key, weight in graph.get("edges", {}).items():
+        for raw_key, value in graph.get("edges", {}).items():
             source, relation, target = _parse_edge_key(raw_key)
             if allowed and (source not in allowed or target not in allowed):
                 continue
+            if isinstance(value, dict):
+                weight = int(value.get("weight", 0))
+                frequency = int(value.get("frequency", 0))
+            else:
+                weight = int(value)
+                frequency = int(value)
             edges.append(
                 {
                     "source": source,
-                    "relation": relation,
+                    "relation": normalize_relation(relation),
                     "target": target,
                     "weight": int(weight),
+                    "frequency": int(frequency),
                 }
             )
 
@@ -256,19 +282,48 @@ class LearningGraphStore:
         target = normalize_term(term)
         graph = self._data.get(user_id, {"concepts": {}, "edges": {}})
         relations = []
-        for raw_key, weight in graph.get("edges", {}).items():
+        for raw_key, value in graph.get("edges", {}).items():
             source, relation, dest = _parse_edge_key(raw_key)
+            if isinstance(value, dict):
+                weight = int(value.get("weight", 0))
+                frequency = int(value.get("frequency", 0))
+            else:
+                weight = int(value)
+                frequency = int(value)
             if source == target:
                 relations.append(
-                    {"term": dest, "relation": relation, "weight": int(weight), "direction": "out"}
+                    {
+                        "term": dest,
+                        "relation": normalize_relation(relation),
+                        "weight": int(weight),
+                        "frequency": int(frequency),
+                        "direction": "out",
+                    }
                 )
             elif dest == target:
                 relations.append(
-                    {"term": source, "relation": relation, "weight": int(weight), "direction": "in"}
+                    {
+                        "term": source,
+                        "relation": normalize_relation(relation),
+                        "weight": int(weight),
+                        "frequency": int(frequency),
+                        "direction": "in",
+                    }
                 )
 
         relations.sort(key=lambda item: item["weight"], reverse=True)
         return relations[:limit]
+
+    def strongest_edges(self, user_id: str, limit: int = 12) -> list[dict[str, object]]:
+        graph = self.get_graph(user_id=user_id, max_nodes=240, max_edges=600)
+        edges = list(graph.get("edges", []))
+        edges.sort(key=lambda item: (int(item.get("weight", 0)), int(item.get("frequency", 0))), reverse=True)
+        return edges[:limit]
+
+    def semantic_related_terms(self, user_id: str, term: str, limit: int = 8) -> list[dict[str, object]]:
+        related = self.related_terms(user_id=user_id, term=term, limit=max(40, limit * 3))
+        semantic = [item for item in related if item.get("relation") == "semantically_related"]
+        return semantic[:limit]
 
     def build_context(self, user_id: str, query: str, limit: int = 8) -> list[str]:
         related_map: dict[str, list[dict[str, object]]] = defaultdict(list)
@@ -281,10 +336,20 @@ class LearningGraphStore:
             concepts = self.get_concepts(user_id=user_id, limit=5)
             if not concepts:
                 return []
-            return [
+            context = [
                 "[Graph concepts]\n"
                 + ", ".join(f"{c['term']}({c['frequency']})" for c in concepts)
             ]
+            strong_edges = self.strongest_edges(user_id=user_id, limit=4)
+            if strong_edges:
+                context.append(
+                    "[Graph strongest]\n"
+                    + "; ".join(
+                        f"{edge['source']} -[{edge['relation']}]-> {edge['target']} (w={edge['weight']})"
+                        for edge in strong_edges
+                    )
+                )
+            return context
 
         lines: list[str] = []
         for term, rels in related_map.items():
@@ -293,6 +358,23 @@ class LearningGraphStore:
                 for rel in rels[:limit]
             )
             lines.append(f"[Graph related]\n{pair_text}")
+
+            semantic = [rel for rel in rels if rel.get("relation") == "semantically_related"]
+            if semantic:
+                semantic_text = ", ".join(
+                    f"{rel['term']}({rel['weight']})" for rel in semantic[:4]
+                )
+                lines.append(f"[Graph semantic term={term}]\n{semantic_text}")
+
+        strong_edges = self.strongest_edges(user_id=user_id, limit=5)
+        if strong_edges:
+            lines.append(
+                "[Graph strongest]\n"
+                + "; ".join(
+                    f"{edge['source']} -[{edge['relation']}]-> {edge['target']} (w={edge['weight']})"
+                    for edge in strong_edges
+                )
+            )
         return lines
 
 

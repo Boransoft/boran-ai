@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import MainAppPage from "./MainAppPage";
@@ -11,6 +11,7 @@ import { sessionStorageKey, recentDocsStorageKey, messagesStorageKey } from "../
 import { installLocalStorageMock } from "../test/localStorageMock";
 import { useUploadStore } from "../store/uploadStore";
 import { useVoiceStore } from "../store/voiceStore";
+import { uploadDocument } from "../services/documentService";
 
 vi.mock("../components/TopBar", () => ({
   default: ({ onLogout }: { onLogout: () => void }) => (
@@ -34,19 +35,41 @@ vi.mock("../components/MessageList", () => ({
   ),
 }));
 
+vi.mock("../components/UploadToastStack", () => ({
+  default: ({ toasts }: { toasts: Array<{ id: string; message: string }> }) => (
+    <div data-testid="upload-toast-stack">
+      {toasts.map((toast) => (
+        <div key={toast.id} data-testid="upload-toast-item">
+          {toast.message}
+        </div>
+      ))}
+    </div>
+  ),
+}));
+
 vi.mock("../components/Composer", () => ({
   default: ({
     text,
     onTextChange,
+    onUploadFiles,
   }: {
     text: string;
     onTextChange: (next: string) => void;
+    onUploadFiles: (files: File[]) => void;
   }) => (
-    <input
-      data-testid="composer-input"
-      value={text}
-      onChange={(event) => onTextChange((event.target as HTMLInputElement).value)}
-    />
+    <div>
+      <input
+        data-testid="composer-input"
+        value={text}
+        onChange={(event) => onTextChange((event.target as HTMLInputElement).value)}
+      />
+      <button
+        data-testid="upload-trigger"
+        onClick={() => onUploadFiles([new File(["demo"], "doc.pdf", { type: "application/pdf" })])}
+      >
+        upload
+      </button>
+    </div>
   ),
 }));
 
@@ -244,5 +267,98 @@ describe("MainAppPage component persistence", () => {
     expect(localStorage.getItem(sessionStorageKey("u1"))).toBeNull();
     expect(localStorage.getItem(recentDocsStorageKey("u1"))).toBeNull();
     expect(localStorage.getItem(messagesStorageKey("u1"))).not.toBeNull();
+  });
+
+  it("updates existing upload toast for same file instead of duplicating", async () => {
+    setAuthUser("u1");
+    render(<MainAppPage />);
+
+    await waitFor(() => {
+      expect(useUploadStore.getState().activeUserId).toBe("u1");
+    });
+
+    useUploadStore.setState({
+      files: [
+        {
+          id: "f1",
+          fileName: "doc.pdf",
+          status: "queued",
+          progress: 0,
+          sizeBytes: 1024,
+          mimeType: "application/pdf",
+          createdAt: 1,
+          errorMessage: "",
+          sourceId: "doc.pdf",
+          documentId: "",
+          chunkCount: 0,
+          uploadedAt: null,
+          backendResponse: null,
+        },
+      ],
+      inProgress: true,
+    });
+
+    await waitFor(() => {
+      const items = screen.getAllByTestId("upload-toast-item");
+      expect(items).toHaveLength(1);
+      expect(items[0].textContent).toContain("Dosya kuyruga alindi");
+    });
+
+    useUploadStore.setState({
+      files: [
+        {
+          id: "f1",
+          fileName: "doc.pdf",
+          status: "uploading",
+          progress: 40,
+          sizeBytes: 1024,
+          mimeType: "application/pdf",
+          createdAt: 1,
+          errorMessage: "",
+          sourceId: "doc.pdf",
+          documentId: "",
+          chunkCount: 0,
+          uploadedAt: null,
+          backendResponse: null,
+        },
+      ],
+      inProgress: true,
+    });
+
+    await waitFor(() => {
+      const items = screen.getAllByTestId("upload-toast-item");
+      expect(items).toHaveLength(1);
+      expect(items[0].textContent).toContain("Dosya yukleniyor");
+    });
+  });
+
+  it("keeps upload status messages out of chat stream", async () => {
+    setAuthUser("u1");
+    vi.mocked(uploadDocument).mockResolvedValue({
+      status: "ok",
+      details: {
+        status: "ok",
+        file_name: "doc.pdf",
+        chunks: 2,
+        source_id: "src_1",
+      },
+    });
+
+    render(<MainAppPage />);
+    fireEvent.click(screen.getByTestId("upload-trigger"));
+
+    await waitFor(() => {
+      expect(vi.mocked(uploadDocument)).toHaveBeenCalledTimes(1);
+    });
+
+    const messageList = screen.getByTestId("message-list");
+    expect(within(messageList).queryByText(/Dosya kuyruga alindi/i)).toBeNull();
+    expect(within(messageList).queryByText(/Dosya yukleniyor/i)).toBeNull();
+    expect(within(messageList).queryByText(/Belge isleniyor/i)).toBeNull();
+    expect(within(messageList).queryByText(/Belge basariyla yuklendi/i)).toBeNull();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("upload-toast-stack").textContent).toContain("Belge basariyla yuklendi");
+    });
   });
 });

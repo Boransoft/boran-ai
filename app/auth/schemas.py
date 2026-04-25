@@ -22,6 +22,7 @@ class UserPublic(BaseModel):
     email: str | None
     display_name: str | None
     is_active: bool
+    is_admin: bool
     created_at: datetime
 
 

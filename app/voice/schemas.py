@@ -26,6 +26,9 @@ class VoiceSpeakResponse(BaseModel):
     audio_file: str
     audio_url: str
     warning: str = ""
+    tts_voice: str = ""
+    tts_rate: str = ""
+    tts_pitch: str = ""
 
 
 class VoiceChatResponse(BaseModel):
@@ -40,12 +43,17 @@ class VoiceChatResponse(BaseModel):
     audio_url: str
     warning: str = ""
     upload_mime_type: str = ""
+    tts_voice: str = ""
+    tts_rate: str = ""
+    tts_pitch: str = ""
+    debug_timing: dict[str, object] = Field(default_factory=dict)
 
 
 class VoiceBackendState(BaseModel):
     provider: str
     ready: bool
     detail: str = ""
+    config: dict[str, object] = Field(default_factory=dict)
 
 
 class VoiceHealthResponse(BaseModel):

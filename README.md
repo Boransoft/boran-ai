@@ -1,6 +1,8 @@
-# boran.ai
+# boranizm
 
 Personal, continuously-learning AI assistant project.
+
+Encoding note: Frontend source files should be saved as UTF-8 to avoid Turkish character corruption in UI text.
 
 ## Current Scope
 
@@ -41,6 +43,9 @@ Personal, continuously-learning AI assistant project.
 - `GET /learning/concepts/{user_id}`
 - `GET /learning/graph/{user_id}`
 - `GET /learning/graph/{user_id}/related?term=...`
+- `GET /learning/graph/{user_id}/semantic?term=...`
+- `GET /learning/clusters/{user_id}`
+- `GET /learning/memory/top/{user_id}`
 - `GET /learning/reflections/{user_id}`
 - `GET /learning/summary/{user_id}`
 - `POST /feedback/correction`
@@ -136,6 +141,12 @@ Environment variables:
 EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
 EMBEDDING_CACHE_PATH=data/models
 EMBEDDING_ALLOW_DOWNLOAD=true
+UPLOAD_MAX_FILE_SIZE_MB=100
+SEMANTIC_LINK_THRESHOLD=0.82
+GRAPH_CO_OCCURRENCE_WINDOW=4
+CLUSTER_MIN_SIZE=2
+MEMORY_DECAY_DAYS=30
+MEMORY_IMPORTANCE_DEFAULT=1.0
 ```
 
 Runtime behavior:
@@ -144,6 +155,26 @@ Runtime behavior:
 2. If cache is missing and internet is available, downloads model and caches it.
 3. If internet is unavailable, loads from local cache only.
 4. If model still cannot load, system does not crash and uses hash-based fallback embeddings.
+
+## Upload Size Limit
+
+- Backend upload limit varsayilan olarak `100 MB` ve `.env` icindeki `UPLOAD_MAX_FILE_SIZE_MB` ile degistirilir.
+- Frontend limiti `frontend/.env` icindeki `VITE_MAX_UPLOAD_SIZE_MB` degeri ile kontrol edilir (varsayilan `100`).
+- Frontend ve backend limitleri ayni tutulmalidir.
+
+## Retrieval Diversity Tuning
+
+Document retrieval applies a per-source cap to improve context diversity when multiple files are indexed.
+
+```env
+RAG_PER_SOURCE_CAP_MIN=2
+RAG_PER_SOURCE_CAP_MAX=4
+```
+
+Notes:
+
+- Effective cap still scales with `top_k`; defaults keep existing behavior.
+- If only one source is present in candidate results, cap is relaxed automatically.
 
 ## Voice Conversation Setup (MVP)
 
@@ -156,25 +187,36 @@ pip install -e .[voice]
 Recommended providers:
 
 - STT: `faster_whisper` (local-first, CPU-friendly)
-- TTS local mode: `coqui`
-- TTS easy fallback mode: `edge`
+- TTS default mode: `edge`
+- TTS optional local mode: `coqui` (auto-fallback to `edge` if unavailable)
 
 Environment variables:
 
 ```env
 VOICE_STT_PROVIDER=faster_whisper
-VOICE_TTS_PROVIDER=coqui
-# or:
-# VOICE_TTS_PROVIDER=edge
-WHISPER_MODEL_SIZE=small
+VOICE_TTS_PROVIDER=edge
+# optional:
+# VOICE_TTS_PROVIDER=coqui
+WHISPER_MODEL_SIZE=base
+WHISPER_DEFAULT_LANGUAGE=tr
+WHISPER_BEAM_SIZE=1
+WHISPER_BEST_OF=1
+WHISPER_VAD_FILTER=false
 WHISPER_COMPUTE_TYPE=int8
 TTS_MODEL_NAME=tts_models/en/ljspeech/tacotron2-DDC
 VOICE_OUTPUT_DIR=data/voice/output
 AUDIO_UPLOAD_DIR=data/voice/uploads
-EDGE_TTS_VOICE=en-US-AriaNeural
+EDGE_TTS_VOICE=auto
+EDGE_TTS_VOICE_PROFILE=female
+EDGE_TTS_VOICE_FEMALE=tr-TR-EmelNeural
+EDGE_TTS_VOICE_MALE=tr-TR-AhmetNeural
+EDGE_TTS_RATE=-5%
+EDGE_TTS_PITCH=+0Hz
 COQUI_SPEAKER=
 COQUI_LANGUAGE=
 VOICE_OUTPUT_FORMAT=mp3
+VOICE_TTS_MAX_CHARS=700
+VOICE_WARMUP_ENABLED=true
 VOICE_INCLUDE_REFLECTION_DEFAULT=true
 VOICE_FILE_TTL_HOURS=24
 CORS_ALLOW_ORIGINS=*
@@ -186,9 +228,19 @@ CORS_ALLOW_CREDENTIALS=true
 Notes:
 
 - `faster-whisper` and `coqui` download model artifacts on first run.
-- `edge-tts` is practical fallback, but it is not fully local.
+- `coqui` is optional; if it is selected but unavailable, TTS automatically falls back to `edge`.
+- `edge-tts` is practical fallback/default, but it is not fully local.
 - Voice files use UUID-based names and are user-isolated by hashed prefix.
 - Old uploaded/generated files are auto-cleaned using `VOICE_FILE_TTL_HOURS`.
+- Default edge voice is Turkish female (`tr-TR-EmelNeural`) via `EDGE_TTS_VOICE_PROFILE=female`.
+- Startup warmup is enabled by default (`VOICE_WARMUP_ENABLED=true`) to reduce first-call latency.
+- `VOICE_TTS_MAX_CHARS` limits spoken output length to avoid long TTS delays.
+
+Turkish edge voice quick comparison:
+
+- `tr-TR-EmelNeural` (female): most natural default for general conversation, smooth intonation.
+- `tr-TR-AhmetNeural` (male): clearer and slightly slower sounding for instructional content.
+- `en-US-AvaMultilingualNeural` (multilingual alt): can read Turkish but accent is less native than `tr-TR-*` voices.
 
 ## Auth Usage (curl)
 
@@ -280,6 +332,69 @@ curl "http://127.0.0.1:8000/learning/graph/<USER_ID>/related?term=semantic" \
   -H "Authorization: Bearer <ACCESS_TOKEN>"
 ```
 
+Semantic neighbors:
+
+```bash
+curl "http://127.0.0.1:8000/learning/graph/<USER_ID>/semantic?term=ihale" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+Concept clusters:
+
+```bash
+curl "http://127.0.0.1:8000/learning/clusters/<USER_ID>" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+Top scored memory for context:
+
+```bash
+curl "http://127.0.0.1:8000/learning/memory/top/<USER_ID>?query=ihale&limit=8" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### Graph Relation + Semantic Linking
+
+- Graph edges are no longer only rule-based; chunk-level co-occurrence edges are generated.
+- Repeated co-occurrence in the same document/conversation increases edge `weight`.
+- Duplicate edges are merged on normalized `(source, relation, target)`.
+- Supported relation types:
+  - `related_to`
+  - `part_of`
+  - `mentions`
+  - `uses`
+  - `requires`
+  - `belongs_to`
+  - `defined_as`
+  - `semantically_related`
+- Semantic linking uses embeddings and `SEMANTIC_LINK_THRESHOLD` to add strong `semantically_related` edges.
+
+### Concept Clustering
+
+- User-scoped clusters are built from:
+  - graph connectivity
+  - co-occurrence edges
+  - semantic links
+- Cluster labels are short and human-readable (for example `ihale ve yazisma`).
+- Cluster records are persisted as long-term memory with `kind=concept_cluster`.
+
+### Memory Scoring
+
+- Memory retrieval is importance-aware rather than flat.
+- Scoring signals include:
+  - repetition count
+  - correction overlap
+  - graph strength
+  - reflection overlap
+  - cluster centrality overlap
+  - explicit emphasis markers (`onemli`, `hatirla`, `kaydet`, etc.)
+  - recency decay (`MEMORY_DECAY_DAYS`)
+- `/chat` context now prioritizes:
+  - top scored memory
+  - concept clusters
+  - semantic related concepts
+  - strongest graph edges
+
 ## Voice API (Backend-first Contract)
 
 Contract goals:
@@ -336,13 +451,23 @@ curl -X POST "http://127.0.0.1:8000/voice/transcribe" \
 Voice chat (audio in, text+audio out):
 
 ```bash
-curl -X POST "http://127.0.0.1:8000/voice/chat" \
+curl -X POST "http://127.0.0.1:8000/voice/chat?debug_timing=true" \
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
   -F "audio=@C:/path/to/question.webm" \
   -F "language=tr" \
   -F "include_reflection_context=true" \
   -F "audio_format=mp3"
 ```
+
+`debug_timing=true` returns stage timings inside `debug_timing`:
+- `stt_s`
+- `memory_retrieval_s`
+- `graph_reasoning_context_s`
+- `context_preparation_s`
+- `lm_response_s`
+- `tts_s`
+- `total_s`
+- `slowest_step`
 
 Fetch generated audio:
 
@@ -378,6 +503,7 @@ curl "http://127.0.0.1:8000/voice/audio/<AUDIO_FILE_NAME>" \
   - transcript + reply rendering
   - authenticated audio fetch + auto play
   - state labels: `idle / recording / processing / playing`
+  - selected TTS settings preview after `/voice/chat` (`voice`, `rate`, `pitch`)
 
 Token alma adimlari (demo icin):
 
@@ -502,3 +628,26 @@ Mobile testing:
 1. Open Chrome DevTools.
 2. Enable device toolbar (mobile viewport).
 3. Test login, chat, voice chat, and document upload pages.
+
+LAN + PWA login testing:
+
+1. Start backend with LAN host: `uvicorn app.main:app --host 0.0.0.0 --port 8000`.
+2. In `frontend/.env`, either:
+   - leave `VITE_API_BASE_URL` empty (frontend auto-uses current host with `:8000`), or
+   - set `VITE_API_BASE_URL=http://<PC_LAN_IP>:8000`.
+3. Rebuild frontend when env changes: `cd frontend && npm run build`.
+4. Start preview with host: `cd frontend && npm run preview -- --host`.
+5. Open on phone: `http://<PC_LAN_IP>:4173`.
+6. Ensure phone and PC are on same Wi-Fi network.
+
+CORS note for LAN preview:
+
+- Example frontend origin: `http://192.168.1.104:4173`
+- If needed, add this origin in backend `allow_origins` / `CORS_ALLOW_ORIGINS`.
+
+## Native Mobile MVP (React Native)
+
+Native mobile MVP source lives under `mobile/`.
+
+- Main setup command: `npx react-native init boranMobile --template react-native-template-typescript`
+- Full package list and Android emulator steps: `mobile/README.md`

@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from app.auth.schemas import LoginRequest, RegisterRequest, TokenResponse, UserPublic
 from app.auth.service import (
     get_current_user_public,
+    get_user_by_external_id,
     login_user,
     register_user,
 )
@@ -19,6 +20,16 @@ def get_current_external_id(request: Request) -> str:
             detail="Missing authenticated user.",
         )
     return str(external_id)
+
+
+def get_current_admin_external_id(external_id: str = Depends(get_current_external_id)) -> str:
+    user = get_user_by_external_id(external_id)
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+    return external_id
 
 
 @router.post("/register", response_model=TokenResponse)

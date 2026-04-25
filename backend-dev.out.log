@@ -1,0 +1,11 @@
+INFO:     127.0.0.1:49739 - "GET /admin/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49739 - "GET /admin/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49739 - "GET /admin/documents?limit=100&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53338 - "GET /admin/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53338 - "GET /admin/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53338 - "OPTIONS /admin/logs?limit=120&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53338 - "GET /admin/logs?limit=120&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53338 - "OPTIONS /admin/conversations?limit=80&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53338 - "GET /admin/conversations?limit=80&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53338 - "GET /admin/ingest-jobs?limit=100&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53338 - "GET /admin/documents?limit=100&offset=0 HTTP/1.1" 200 OK

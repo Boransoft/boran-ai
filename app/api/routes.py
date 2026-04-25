@@ -1,4 +1,3 @@
-import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -10,10 +9,13 @@ from app.db.session import check_db_health
 from app.db.sync import sync_user_snapshot
 from app.ingest.parsers import SUPPORTED_EXTENSIONS
 from app.learning.graph import learning_graph_store
+from app.learning.clustering import concept_cluster_engine
 from app.learning.consolidation import consolidation_engine
 from app.learning.corrections import record_correction
 from app.learning.pipeline import learning_pipeline
 from app.learning.reflection import reflection_engine
+from app.learning.scoring import memory_scoring_engine
+from app.learning.semantic_linking import semantic_linker
 from app.memory.long_term import long_term_memory
 from app.schemas import (
     ChatRequest,
@@ -25,6 +27,7 @@ from app.schemas import (
     DbHealthResponse,
     IngestResponse,
     LearningConceptItem,
+    LearningClusterItem,
     LearningConversationIngestRequest,
     LearningGraphResponse,
     LearningIngestResponse,
@@ -32,8 +35,8 @@ from app.schemas import (
     LongTermMemoryItem,
     ReflectionRunResponse,
     ReflectionSummaryResponse,
+    ScoredMemoryItem,
 )
-from app.services.assistant import build_reply
 
 
 router = APIRouter(tags=["api"])
@@ -98,6 +101,9 @@ def chat(
     req: ChatRequest,
     current_user_id: str = Depends(get_current_external_id),
 ):
+    # Lazy import keeps startup fast; assistant stack is loaded on first chat request.
+    from app.services.assistant import build_reply
+
     if req.user_id and req.user_id != current_user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -108,17 +114,44 @@ def chat(
         message=req.message,
         save_to_long_term=req.save_to_long_term,
         include_reflection_context=req.include_reflection_context,
+        source_ids=req.source_ids,
+        file_names=req.file_names,
+        source_filters=req.source_ids or req.file_names,
+        recent_documents=req.recent_documents,
+        context_scope=req.context_scope,
+        doc_top_k=req.top_k,
+        doc_similarity_threshold=req.similarity_threshold,
     )
 
 
 def _save_upload(file: UploadFile) -> Path:
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename.")
+
+    max_size_bytes = max(1, settings.upload_max_file_size_mb) * 1024 * 1024
     target_dir = Path(settings.ingest_path)
     target_dir.mkdir(parents=True, exist_ok=True)
     target_file = target_dir / file.filename
-    with target_file.open("wb") as fp:
-        shutil.copyfileobj(file.file, fp)
+
+    written = 0
+    try:
+        with target_file.open("wb") as fp:
+            while True:
+                chunk = file.file.read(1024 * 1024)
+                if not chunk:
+                    break
+                written += len(chunk)
+                if written > max_size_bytes:
+                    raise HTTPException(
+                        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                        detail=f"Dosya boyutu {settings.upload_max_file_size_mb} MB sinirini asiyor.",
+                    )
+                fp.write(chunk)
+    except HTTPException:
+        if target_file.exists():
+            target_file.unlink(missing_ok=True)
+        raise
+
     return target_file
 
 
@@ -130,12 +163,15 @@ def ingest_single_file(
     current_user_id: str = Depends(get_current_external_id),
 ):
     target_file = _save_upload(file)
-    pipeline_result = learning_pipeline.ingest_document(
-        user_id=current_user_id,
-        file_path=str(target_file),
-        category=category,
-        tags=tags,
-    )
+    try:
+        pipeline_result = learning_pipeline.ingest_document(
+            user_id=current_user_id,
+            file_path=str(target_file),
+            category=category,
+            tags=tags,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     result = pipeline_result.details
     if result.get("status") != "ok":
         raise HTTPException(status_code=400, detail=result.get("message", "ingest failed"))
@@ -165,12 +201,15 @@ def ingest_single_pdf(
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
     target_file = _save_upload(file)
-    pipeline_result = learning_pipeline.ingest_document(
-        user_id=current_user_id,
-        file_path=str(target_file),
-        category="pdf",
-        tags="pdf",
-    )
+    try:
+        pipeline_result = learning_pipeline.ingest_document(
+            user_id=current_user_id,
+            file_path=str(target_file),
+            category="pdf",
+            tags="pdf",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     result = pipeline_result.details
     if result.get("status") != "ok":
         raise HTTPException(status_code=400, detail=result.get("message", "ingest failed"))
@@ -226,12 +265,15 @@ def add_correction(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot add correction for another user.",
         )
-    correction_id = record_correction(
-        user_id=current_user_id,
-        original_answer=req.original_answer,
-        corrected_answer=req.corrected_answer,
-        note=req.note,
-    )
+    try:
+        correction_id = record_correction(
+            user_id=current_user_id,
+            original_answer=req.original_answer,
+            corrected_answer=req.corrected_answer,
+            note=req.note,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {
         "status": "ok",
         "user_id": current_user_id,
@@ -334,12 +376,15 @@ def learning_ingest_document(
     current_user_id: str = Depends(get_current_external_id),
 ):
     target_file = _save_upload(file)
-    result = learning_pipeline.ingest_document(
-        user_id=current_user_id,
-        file_path=str(target_file),
-        category=category,
-        tags=tags,
-    )
+    try:
+        result = learning_pipeline.ingest_document(
+            user_id=current_user_id,
+            file_path=str(target_file),
+            category=category,
+            tags=tags,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {
         "status": result.status,
         "details": result.details,
@@ -415,6 +460,61 @@ def learning_graph_related(
     }
 
 
+@router.get("/learning/graph/{user_id}/semantic")
+def learning_graph_semantic(
+    user_id: str,
+    term: str,
+    limit: int = 12,
+    current_user_id: str = Depends(get_current_external_id),
+):
+    if user_id != current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot access graph of another user.",
+        )
+    return {
+        "user_id": user_id,
+        "term": term,
+        "related": semantic_linker.lookup_similar_terms(user_id=user_id, term=term, limit=limit),
+    }
+
+
+@router.get("/learning/clusters/{user_id}", response_model=list[LearningClusterItem])
+def learning_clusters(
+    user_id: str,
+    limit: int = 20,
+    current_user_id: str = Depends(get_current_external_id),
+):
+    if user_id != current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot access clusters of another user.",
+        )
+    clusters = concept_cluster_engine.list_clusters(user_id=user_id, limit=limit)
+    if not clusters:
+        clusters = concept_cluster_engine.build_clusters(user_id=user_id)[:limit]
+    return clusters
+
+
+@router.get("/learning/memory/top/{user_id}", response_model=list[ScoredMemoryItem])
+def learning_memory_top(
+    user_id: str,
+    query: str = "",
+    limit: int = 12,
+    current_user_id: str = Depends(get_current_external_id),
+):
+    if user_id != current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot access memory of another user.",
+        )
+    return memory_scoring_engine.top_memories(
+        user_id=user_id,
+        query=query,
+        limit=limit,
+    )
+
+
 @router.post("/learning/reflect/{user_id}", response_model=ReflectionRunResponse)
 def learning_reflect(
     user_id: str,
@@ -461,3 +561,4 @@ def learning_summary(
             detail="Cannot access summary of another user.",
         )
     return reflection_engine.get_summary(user_id=user_id)
+

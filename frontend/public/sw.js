@@ -1,5 +1,40 @@
-﻿const CACHE_NAME = "boran-ai-pwa-v1";
+const CACHE_NAME = "boranizm-pwa-v3";
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest"];
+
+function isCacheableResponse(response) {
+  return Boolean(response) && response.status === 200 && response.type === "basic";
+}
+
+async function networkFirst(request, fallbackUrl = "") {
+  try {
+    const response = await fetch(request);
+    if (isCacheableResponse(response)) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    if (fallbackUrl) {
+      const fallback = await caches.match(fallbackUrl);
+      if (fallback) return fallback;
+    }
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    throw error;
+  }
+}
+
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+
+  const response = await fetch(request);
+  if (isCacheableResponse(response)) {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put(request, response.clone());
+  }
+  return response;
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -26,21 +61,21 @@ self.addEventListener("fetch", (event) => {
   if (!sameOrigin) return;
 
   if (req.mode === "navigate") {
-    event.respondWith(
-      fetch(req).catch(() => caches.match("/index.html"))
-    );
+    event.respondWith(networkFirst(req, "/index.html"));
     return;
   }
 
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req).then((res) => {
-        if (!res || res.status !== 200 || res.type !== "basic") return res;
-        const cloned = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, cloned));
-        return res;
-      });
-    })
-  );
+  if (url.pathname.startsWith("/admin")) {
+    event.respondWith(networkFirst(req));
+    return;
+  }
+
+  const isVersionedAsset = url.pathname.startsWith("/assets/");
+  const isStaticAsset = ["script", "style", "worker", "font"].includes(req.destination);
+  if (isVersionedAsset || isStaticAsset) {
+    event.respondWith(networkFirst(req));
+    return;
+  }
+
+  event.respondWith(cacheFirst(req));
 });

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 
 from app.auth.routes import get_current_external_id
@@ -135,6 +135,9 @@ def voice_speak(
         "audio_file": result.get("audio_file", ""),
         "audio_url": result.get("audio_url", ""),
         "warning": result.get("warning", ""),
+        "tts_voice": result.get("tts_voice", ""),
+        "tts_rate": result.get("tts_rate", ""),
+        "tts_pitch": result.get("tts_pitch", ""),
     }
 
 
@@ -146,6 +149,7 @@ def voice_chat(
     save_to_long_term: bool = Form(default=True),
     include_reflection_context: bool | None = Form(default=None),
     audio_format: str | None = Form(default=None),
+    debug_timing: bool = Query(default=False),
     current_user_id: str = Depends(get_current_external_id),
 ):
     upload = _resolve_upload(audio=audio, fallback_file=file)
@@ -157,6 +161,7 @@ def voice_chat(
             save_to_long_term=save_to_long_term,
             include_reflection_context=include_reflection_context,
             audio_format=audio_format,
+            debug_timing=debug_timing,
         )
     except VoiceValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

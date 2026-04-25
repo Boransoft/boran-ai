@@ -1,0 +1,8 @@
+INFO:     Started server process [7212]
+INFO:     Waiting for application startup.
+INFO:     startup_begin
+INFO:     startup_step scheduler_start_s=0.002
+INFO:     startup_step voice_warmup_skipped lazy_init_enabled=true voice_warmup_enabled_setting=True
+INFO:     startup_done total_s=0.010
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)

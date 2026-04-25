@@ -1,4 +1,4 @@
-﻿type Props = {
+type Props = {
   isRecording: boolean;
   onStart: () => void;
   onStop: () => void;

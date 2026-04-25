@@ -95,6 +95,7 @@ def test_voice_chat_smoke(monkeypatch):
         save_to_long_term: bool = True,
         include_reflection_context: bool | None = None,
         audio_format: str | None = None,
+        debug_timing: bool = False,
     ):
         assert user_id == "voice-user"
         return {
@@ -141,6 +142,7 @@ def test_voice_chat_accepts_file_field(monkeypatch):
         save_to_long_term: bool = True,
         include_reflection_context: bool | None = None,
         audio_format: str | None = None,
+        debug_timing: bool = False,
     ):
         assert upload.filename == "ask.webm"
         return {

@@ -1,4 +1,7 @@
 import os
+import hashlib
+import uuid
+from datetime import datetime, timezone
 
 import chromadb
 from pypdf import PdfReader
@@ -40,7 +43,20 @@ def get_collection(collection_name: str):
     return client.get_or_create_collection(collection_name)
 
 
-def ingest_pdf(file_path: str, collection_name: str | None = None) -> dict[str, object]:
+def _file_checksum_sha256(file_path: str) -> str:
+    sha = hashlib.sha256()
+    with open(file_path, "rb") as fp:
+        for chunk in iter(lambda: fp.read(1024 * 1024), b""):
+            sha.update(chunk)
+    return sha.hexdigest()
+
+
+def ingest_pdf(
+    file_path: str,
+    collection_name: str | None = None,
+    user_id: str | None = None,
+) -> dict[str, object]:
+    scoped_user_id = str(user_id or "").strip()
     full_text = extract_text_from_pdf(file_path)
     method = "normal"
 
@@ -69,19 +85,58 @@ def ingest_pdf(file_path: str, collection_name: str | None = None) -> dict[str, 
     target_collection = collection_name or settings.documents_collection
     collection = get_collection(target_collection)
     base_name = os.path.basename(file_path)
+    source_id = f"src_{uuid.uuid4().hex}"
+    document_id = f"doc_{uuid.uuid4().hex}"
+    upload_time = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    checksum = _file_checksum_sha256(file_path)
 
     for index, chunk in enumerate(chunks):
         collection.add(
-            ids=[f"{base_name}_{index}"],
+            ids=[f"{source_id}:chunk:{index:06d}"],
             documents=[chunk],
             embeddings=[embeddings[index]],
-            metadatas=[{"source": base_name, "method": method}],
+            metadatas=[
+                {
+                    "source": base_name,
+                    "source_id": source_id,
+                    "document_id": document_id,
+                    "file_name": base_name,
+                    "original_file_name": base_name,
+                    "normalized_file_name": base_name.lower(),
+                    "mime_type": "application/pdf",
+                    "source_type": "pdf",
+                    "upload_time": upload_time,
+                    "uploaded_at": upload_time,
+                    "chunk_count": len(chunks),
+                    "chunk_index": index,
+                    "collection": target_collection,
+                    "status": "ready",
+                    "checksum": checksum,
+                    "method": method,
+                    "content_type": "pdf",
+                    "category": "pdf",
+                    "tags": "pdf",
+                    "user_id": scoped_user_id,
+                }
+            ],
         )
 
     return {
         "status": "ok",
         "file": file_path,
         "chunks": len(chunks),
+        "chunk_count": len(chunks),
         "method": method,
         "collection": target_collection,
+        "source_id": source_id,
+        "document_id": document_id,
+        "file_name": base_name,
+        "original_file_name": base_name,
+        "normalized_file_name": base_name.lower(),
+        "mime_type": "application/pdf",
+        "source_type": "pdf",
+        "upload_time": upload_time,
+        "uploaded_at": upload_time,
+        "checksum": checksum,
+        "user_id": scoped_user_id,
     }
