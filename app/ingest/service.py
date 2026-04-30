@@ -15,6 +15,7 @@ from app.ingest.parsers import SUPPORTED_EXTENSIONS, parse_file_to_text
 from app.rag.embeddings import encode_texts
 from app.rag.document_sources import register_document_source
 from app.rag.ingest import split_text
+from app.rag.ocr_utils import ocr_unavailable_warning
 
 
 logger = logging.getLogger("uvicorn.error")
@@ -101,12 +102,17 @@ def ingest_file_with_text(
     checksum = _file_checksum_sha256(file_path)
 
     if not text.strip():
+        message = (
+            ocr_unavailable_warning()
+            if method == "ocr_unavailable"
+            else "No text extracted from file."
+        )
         return IngestOutput(
             result={
                 "status": "error",
                 "file": file_path,
                 "chunks": 0,
-                "message": "No text extracted from file.",
+                "message": message,
                 "method": method,
                 "content_type": content_type,
                 "mime_type": mime_type,

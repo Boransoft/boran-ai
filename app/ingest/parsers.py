@@ -4,11 +4,15 @@ from pathlib import Path
 
 from PIL import Image
 from docx import Document
-import pytesseract
 
 from app.config import settings
 from app.rag.ingest import extract_text_from_pdf
-from app.rag.ocr_utils import extract_text_with_ocr
+from app.rag.ocr_utils import (
+    extract_text_from_image_with_ocr,
+    extract_text_with_ocr,
+    is_image_ocr_available,
+    is_pdf_ocr_available,
+)
 
 
 SUPPORTED_EXTENSIONS = {
@@ -93,8 +97,8 @@ def _parse_dataset(file_path: Path) -> str:
 
 
 def _parse_image(file_path: Path) -> str:
-    image = Image.open(file_path)
-    return pytesseract.image_to_string(image, lang="eng+tur").strip()
+    with Image.open(file_path) as image:
+        return extract_text_from_image_with_ocr(image, language="eng+tur")
 
 
 def parse_file_to_text(file_path: str) -> tuple[str, str, str]:
@@ -108,6 +112,8 @@ def parse_file_to_text(file_path: str) -> tuple[str, str, str]:
         text = extract_text_from_pdf(str(path))
         method = "normal"
         if not text:
+            if not is_pdf_ocr_available():
+                return "", "ocr_unavailable", "pdf"
             text = extract_text_with_ocr(str(path))
             method = "ocr"
         return text, method, "pdf"
@@ -119,7 +125,11 @@ def parse_file_to_text(file_path: str) -> tuple[str, str, str]:
         return _parse_doc(path), "best_effort", "doc"
 
     if ext in IMAGE_EXTENSIONS:
-        return _parse_image(path), "ocr", "image"
+        text = _parse_image(path)
+        method = "ocr"
+        if not text and not is_image_ocr_available():
+            method = "ocr_unavailable"
+        return text, method, "image"
 
     if ext in DATASET_EXTENSIONS:
         return _parse_dataset(path), "dataset_preview", "dataset"

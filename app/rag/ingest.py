@@ -8,7 +8,7 @@ from pypdf import PdfReader
 
 from app.config import settings
 from app.rag.embeddings import encode_texts
-from app.rag.ocr_utils import extract_text_with_ocr
+from app.rag.ocr_utils import extract_text_with_ocr, is_pdf_ocr_available, ocr_unavailable_warning
 
 
 def split_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:
@@ -61,15 +61,24 @@ def ingest_pdf(
     method = "normal"
 
     if not full_text:
-        full_text = extract_text_with_ocr(file_path)
-        method = "ocr"
+        if is_pdf_ocr_available():
+            full_text = extract_text_with_ocr(file_path)
+            method = "ocr"
+        else:
+            method = "ocr_unavailable"
 
     if not full_text:
+        message = (
+            ocr_unavailable_warning()
+            if method == "ocr_unavailable"
+            else "Could not extract text from PDF."
+        )
         return {
             "status": "error",
             "file": file_path,
             "chunks": 0,
-            "message": "Could not extract text from PDF.",
+            "message": message,
+            "method": method,
         }
 
     chunks = split_text(full_text, chunk_size=500, overlap=50)
