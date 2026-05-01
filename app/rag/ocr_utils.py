@@ -7,21 +7,27 @@ logger = logging.getLogger("uvicorn.error")
 
 try:
     import pytesseract as _pytesseract
-except ImportError:
+except Exception as exc:  # pragma: no cover - environment-dependent optional dependency
+    logger.warning("optional_dependency_unavailable name=pytesseract error=%s", exc)
     _pytesseract = None
 
 try:
     from pdf2image import convert_from_path as _convert_from_path
-except ImportError:
+except Exception as exc:  # pragma: no cover - environment-dependent optional dependency
+    logger.warning("optional_dependency_unavailable name=pdf2image error=%s", exc)
     _convert_from_path = None
 
 try:
     import cv2 as _cv2
-except ImportError:
+except Exception as exc:  # pragma: no cover - environment-dependent optional dependency
+    logger.warning("optional_dependency_unavailable name=cv2 error=%s", exc)
     _cv2 = None
 
 if _pytesseract is not None and settings.tesseract_cmd:
-    _pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
+    try:
+        _pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
+    except Exception as exc:  # pragma: no cover - environment-dependent optional dependency
+        logger.warning("tesseract_cmd_config_failed error=%s", exc)
 
 
 def ocr_unavailable_warning() -> str:
