@@ -2,8 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
 const API_BASE_URL_KEY = "boran.ai.apiBaseUrl";
-const DEVICE_BASE_URL = "http://192.168.1.105:8000";
-const ANDROID_EMULATOR_BASE_URL = "http://10.0.2.2:8000";
+const DEFAULT_API_BASE_URL = "https://boran-ai.onrender.com";
 
 function isAndroidEmulator(): boolean {
   if (Platform.OS !== "android") {
@@ -45,7 +44,7 @@ function ensureValidApiBaseUrl(value: string): string {
 }
 
 export function getApiBaseUrl(): string {
-  return isAndroidEmulator() ? ANDROID_EMULATOR_BASE_URL : DEVICE_BASE_URL;
+  return DEFAULT_API_BASE_URL;
 }
 
 export async function getStoredApiBaseUrl(): Promise<string | null> {

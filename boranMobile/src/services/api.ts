@@ -15,41 +15,48 @@ export function getActiveApiBaseUrl(): string {
 
 export async function syncApiBaseUrlFromStorage(): Promise<string> {
   const resolved = await resolveApiBaseUrl();
-  activeApiBaseUrl = resolved;
-  apiClient.defaults.baseURL = resolved;
+  await setActiveApiBaseUrl(resolved);
   return resolved;
 }
 
-export async function setActiveApiBaseUrl(baseUrl: string): Promise<string> {
-  const saved = await saveApiBaseUrl(baseUrl);
-  activeApiBaseUrl = saved;
-  apiClient.defaults.baseURL = saved;
-  return saved;
+export async function setActiveApiBaseUrl(url: string): Promise<string> {
+  const normalized = normalizeApiBaseUrl(url);
+  await saveApiBaseUrl(normalized);
+  apiClient.defaults.baseURL = normalized;
+  activeApiBaseUrl = normalized;
+  return normalized;
 }
 
-apiClient.interceptors.request.use((config) => {
-  config.baseURL = activeApiBaseUrl;
-  return config;
-});
-
-export function authHeader(token: string): Record<string, string> {
+export function authHeader(token: string): { Authorization: string } {
   return {
     Authorization: `Bearer ${token}`,
   };
 }
 
 export function toAbsoluteApiUrl(path: string): string {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  const base = activeApiBaseUrl.replace(/\/+$/, "");
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  return `${base}${normalized}`;
+  const base = getActiveApiBaseUrl().replace(/\/+$/, "");
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${cleanPath}`;
 }
 
-export function toFileUri(path: string): string {
-  if (path.startsWith("file://") || path.startsWith("content://") || path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
+export function normalizeApiBaseUrl(url: string): string {
+  const cleaned = url.trim().replace(/\/+$/, "");
+
+  if (!cleaned) {
+    return getApiBaseUrl();
   }
-  return `file://${path}`;
+
+  if (!cleaned.startsWith("http://") && !cleaned.startsWith("https://")) {
+    return `https://${cleaned}`;
+  }
+
+  return cleaned;
+}
+
+export function toFileUri(uri: string): string {
+  if (uri.startsWith("file://")) {
+    return uri;
+  }
+
+  return `file://${uri}`;
 }

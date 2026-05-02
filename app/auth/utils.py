@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 from jose import jwt
+from jose import JWTError
 from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
@@ -48,7 +49,7 @@ def decode_access_token(token: str) -> dict[str, object]:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token expired.",
         ) from exc
-    except jwt.PyJWTError as exc:
+    except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token.",

@@ -27,13 +27,14 @@ export function VoiceButton({ isRecording, isBusy = false, onPress, disabled = f
 
 const styles = StyleSheet.create({
   button: {
-    height: 52,
-    minWidth: 52,
-    paddingHorizontal: 12,
-    borderRadius: 26,
+    height: 44,
+    minWidth: 46,
+    paddingHorizontal: 10,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.primary,
+    flexShrink: 0,
   },
   recording: {
     backgroundColor: theme.colors.danger,
@@ -44,6 +45,7 @@ const styles = StyleSheet.create({
   label: {
     color: theme.colors.text,
     fontWeight: "700",
-    letterSpacing: 0.6,
+    fontSize: 12,
+    letterSpacing: 0.2,
   },
 });

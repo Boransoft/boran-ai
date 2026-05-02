@@ -20,14 +20,15 @@ export function UploadButton({ isLoading = false, onPress, disabled = false }: U
 const styles = StyleSheet.create({
   button: {
     height: 44,
-    minWidth: 52,
-    paddingHorizontal: 12,
+    minWidth: 46,
+    paddingHorizontal: 10,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    flexShrink: 0,
   },
   disabled: {
     opacity: 0.55,

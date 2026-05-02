@@ -15,7 +15,10 @@ type ComposerProps = {
   isSending: boolean;
   isVoiceLoading: boolean;
   isUploading: boolean;
+  bottomInset?: number;
 };
+
+const INPUT_BAR_BASE_HEIGHT = 60;
 
 export function Composer({
   value,
@@ -27,12 +30,21 @@ export function Composer({
   isSending,
   isVoiceLoading,
   isUploading,
+  bottomInset = 8,
 }: ComposerProps) {
   const busy = isSending || isVoiceLoading || isUploading;
   const canSend = value.trim().length > 0 && !busy;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          height: INPUT_BAR_BASE_HEIGHT + bottomInset,
+          paddingBottom: bottomInset,
+        },
+      ]}
+    >
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -40,6 +52,8 @@ export function Composer({
         placeholder="Mesajinizi yazin..."
         placeholderTextColor={theme.colors.mutedText}
         editable={!busy}
+        returnKeyType="send"
+        onSubmitEditing={canSend ? onSend : undefined}
       />
       <VoiceButton isRecording={isRecording} isBusy={isVoiceLoading} onPress={onVoicePress} disabled={isSending || isUploading} />
       <UploadButton isLoading={isUploading} onPress={onUploadPress} disabled={isSending || isVoiceLoading || isRecording} />
@@ -53,7 +67,7 @@ export function Composer({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
     backgroundColor: theme.colors.background,
@@ -63,8 +77,9 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    minWidth: 0,
     minHeight: 44,
-    maxHeight: 110,
+    maxHeight: 96,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -75,12 +90,13 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     minHeight: 44,
-    minWidth: 80,
+    minWidth: 62,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
+    flexShrink: 0,
   },
   sendDisabled: {
     opacity: 0.45,
@@ -88,6 +104,7 @@ const styles = StyleSheet.create({
   sendLabel: {
     color: theme.colors.text,
     fontWeight: "700",
-    letterSpacing: 0.2,
+    fontSize: 12,
+    letterSpacing: 0.1,
   },
 });

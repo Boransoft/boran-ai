@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StatusBar, StyleSheet, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { LoginScreen } from "./src/screens/LoginScreen";
 import { MainScreen } from "./src/screens/MainScreen";
@@ -39,18 +40,22 @@ export default function App() {
 
   if (isBooting) {
     return (
-      <View style={styles.bootContainer}>
-        <StatusBar barStyle="light-content" />
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
+      <SafeAreaProvider>
+        <View style={styles.bootContainer}>
+          <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      {token ? <MainScreen token={token} onLogout={handleLogout} /> : <LoginScreen onLogin={handleLogin} />}
-    </View>
+    <SafeAreaProvider>
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
+        {token ? <MainScreen token={token} onLogout={handleLogout} /> : <LoginScreen onLogin={handleLogin} />}
+      </View>
+    </SafeAreaProvider>
   );
 }
 
