@@ -120,19 +120,13 @@ def _build_local_chat_reply(message: str) -> str:
 
 @router.post("/chat", response_model=dict[str, str])
 def chat(
-    req: ChatRequest,
+    req: ChatRequest | None = None,
 ):
-    try:
-        _ = req
-        return {
-            "reply": "Boran AI \u00e7al\u0131\u015f\u0131yor",
-            "answer": "Boran AI \u00e7al\u0131\u015f\u0131yor",
-        }
-    except Exception:
-        return {
-            "reply": "Boran AI \u00e7al\u0131\u015f\u0131yor",
-            "answer": "Boran AI \u00e7al\u0131\u015f\u0131yor",
-        }
+    _ = req
+    return {
+        "reply": "Boran AI çalışıyor",
+        "answer": "Boran AI çalışıyor",
+    }
 
 
 def _save_upload(file: UploadFile) -> Path:

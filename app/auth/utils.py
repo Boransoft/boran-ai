@@ -76,12 +76,21 @@ def extract_bearer_token(request: Request) -> str:
 class JwtAuthMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
+        self.public_exact_paths = {
+            "/",
+            "/health",
+            "/openapi.json",
+            "/auth/login",
+            "/auth/register",
+            "/chat",
+        }
         self.public_prefixes = (
             "/auth/register",
             "/auth/login",
             "/health",
             "/db/health",
             "/db/init",
+            "/chat/",
             "/voice/demo",
             "/docs",
             "/openapi.json",
@@ -93,6 +102,9 @@ class JwtAuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         path = request.url.path
+        if path in self.public_exact_paths:
+            return await call_next(request)
+
         if any(path.startswith(prefix) for prefix in self.public_prefixes):
             return await call_next(request)
 
