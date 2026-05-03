@@ -95,22 +95,46 @@ def db_sync_user(
         }
 
 
+def _build_local_chat_reply(message: str) -> str:
+    text = message.strip().lower()
+
+    if "havas" in text:
+        return (
+            "Havas ilmi, gelenekte harfler, sayilar ve dualar arasindaki manevi "
+            "iliskileri konu alan bir alandir; bu konularda guvenilir ve ehil "
+            "kaynaklardan ilerlemek onemlidir."
+        )
+
+    if any(keyword in text for keyword in ("islam", "islami kaynak", "tasavvuf")):
+        return (
+            "Islami kaynaklarda temel referans Kur'an ve sahih sunnette aranir. "
+            "Tasavvuf ise ihlas, nefis terbiyesi ve guzel ahlaka odaklanan bir "
+            "manevi egitim yoludur."
+        )
+
+    return (
+        "Sorunu anladim. Daha net ve kisa bir yanit verebilmem icin konuyu biraz "
+        "daha detaylandirirsan adim adim yardimci olabilirim."
+    )
+
+
 @router.post("/chat", response_model=dict[str, str])
 def chat(
     req: ChatRequest,
     current_user_id: str = Depends(get_current_external_id),
 ):
     try:
-        _ = req
         _ = current_user_id
+        reply = _build_local_chat_reply(req.message if isinstance(req.message, str) else "")
         return {
-            "reply": "Boran AI \u00e7al\u0131\u015f\u0131yor",
-            "answer": "Boran AI \u00e7al\u0131\u015f\u0131yor",
+            "reply": reply,
+            "answer": reply,
         }
     except Exception:
+        safe_reply = "Boran AI su an guvenli modda calisiyor. Lutfen sorunuzu tekrar yazin."
         return {
-            "reply": "Boran AI \u00e7al\u0131\u015f\u0131yor",
-            "answer": "Boran AI \u00e7al\u0131\u015f\u0131yor",
+            "reply": safe_reply,
+            "answer": safe_reply,
         }
 
 
