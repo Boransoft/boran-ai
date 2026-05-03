@@ -1,32 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform } from "react-native";
 
 const API_BASE_URL_KEY = "boran.ai.apiBaseUrl";
 const DEFAULT_API_BASE_URL = "https://boran-ai.onrender.com";
-
-function isAndroidEmulator(): boolean {
-  if (Platform.OS !== "android") {
-    return false;
-  }
-
-  const constants = Platform.constants as Record<string, unknown>;
-  const fingerprint = String(constants.Fingerprint ?? "").toLowerCase();
-  const model = String(constants.Model ?? "").toLowerCase();
-  const brand = String(constants.Brand ?? "").toLowerCase();
-  const device = String(constants.Device ?? "").toLowerCase();
-  const product = String(constants.Product ?? "").toLowerCase();
-
-  return (
-    fingerprint.includes("generic") ||
-    fingerprint.includes("emulator") ||
-    model.includes("emulator") ||
-    model.includes("android sdk built for x86") ||
-    model.includes("sdk_gphone") ||
-    (brand.startsWith("generic") && device.startsWith("generic")) ||
-    product.includes("sdk") ||
-    product.includes("emulator")
-  );
-}
 
 function normalizeApiBaseUrl(value: string): string {
   return value.trim().replace(/\/+$/, "");

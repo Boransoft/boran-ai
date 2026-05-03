@@ -55,6 +55,7 @@ function extractAssistantReply(payload: any): string {
 
 export function ChatScreen({ token, onLogout }: ChatScreenProps) {
   const insets = useSafeAreaInsets();
+  const accessToken = token.trim();
   const [messages, setMessages] = useState<ChatMessage[]>([
     createMessage("system", "Tek ekran aktif. Chat, voice ve pdf yukleme hazir."),
   ]);
@@ -81,9 +82,23 @@ export function ChatScreen({ token, onLogout }: ChatScreenProps) {
     pushMessages([createMessage("system", text)]);
   };
 
+  const ensureSession = async (): Promise<boolean> => {
+    const hasToken = accessToken.length > 0;
+    console.log("[chat-screen] token:", hasToken ? "present" : "missing");
+    if (hasToken) {
+      return true;
+    }
+    pushSystemMessage("Oturum süresi doldu, tekrar giriş yap.");
+    await onLogout();
+    return false;
+  };
+
   const handleSendText = async () => {
     const text = inputText.trim();
     if (!text || anyBusy || isRecording) {
+      return;
+    }
+    if (!(await ensureSession())) {
       return;
     }
 
@@ -94,7 +109,7 @@ export function ChatScreen({ token, onLogout }: ChatScreenProps) {
       setIsSending(true);
 
       const response = await sendChatMessage({
-        token,
+        token: accessToken,
         message: text,
       });
 
@@ -108,6 +123,13 @@ export function ChatScreen({ token, onLogout }: ChatScreenProps) {
       pushMessages([createMessage("assistant_text", assistantReply)]);
     } catch (error: any) {
       console.log("Text chat error:", error?.response?.data ?? error?.message ?? error);
+      const status = error?.response?.status;
+      const detailText = String(error?.response?.data?.detail ?? error?.response?.data?.message ?? error?.message ?? "");
+      if (status === 401 || detailText.includes("[401]") || detailText.includes("401")) {
+        pushSystemMessage("Oturum süresi doldu, tekrar giriş yap.");
+        await onLogout();
+        return;
+      }
 
       const detail =
         error?.response?.data?.detail ??
@@ -124,6 +146,9 @@ export function ChatScreen({ token, onLogout }: ChatScreenProps) {
     if (isSending || isUploading) {
       return;
     }
+    if (!(await ensureSession())) {
+      return;
+    }
 
     if (!isRecording) {
       try {
@@ -138,7 +163,7 @@ export function ChatScreen({ token, onLogout }: ChatScreenProps) {
       setIsVoiceLoading(true);
       const recordPath = await stopRecording();
       const response = await chatWithVoice({
-        token,
+        token: accessToken,
         audioPath: recordPath,
       });
 
@@ -168,6 +193,9 @@ export function ChatScreen({ token, onLogout }: ChatScreenProps) {
     if (anyBusy || isRecording) {
       return;
     }
+    if (!(await ensureSession())) {
+      return;
+    }
 
     try {
       const [picked] = await pick({
@@ -190,7 +218,7 @@ export function ChatScreen({ token, onLogout }: ChatScreenProps) {
       setIsUploading(true);
 
       await uploadDocument({
-        token,
+        token: accessToken,
         file: {
           uri,
           name: pickedName,
@@ -235,7 +263,7 @@ export function ChatScreen({ token, onLogout }: ChatScreenProps) {
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-            renderItem={({ item }) => <ChatBubble message={item} token={token} />}
+            renderItem={({ item }) => <ChatBubble message={item} token={accessToken} />}
           />
         </View>
 

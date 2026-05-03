@@ -141,7 +141,13 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           password,
         });
 
-      await onLogin(response.access_token);
+      const accessToken = typeof response.access_token === "string" ? response.access_token.trim() : "";
+      console.log("[login-screen] access_token:", accessToken ? "present" : "missing");
+      if (!accessToken) {
+        setErrorText("Giris basarisiz oldu: token alinamadi.");
+        return;
+      }
+      await onLogin(accessToken);
     } catch (error: any) {
       const status = error?.response?.status as number | undefined;
       const detailText = extractDetailText(error?.response?.data?.detail ?? error?.response?.data?.message ?? error?.message);
