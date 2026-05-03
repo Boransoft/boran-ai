@@ -1,6 +1,6 @@
 ﻿from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
 from app.auth.routes import get_current_external_id
 from app.config import settings
@@ -121,25 +121,17 @@ def _build_local_chat_reply(message: str) -> str:
 @router.post("/chat", response_model=dict[str, str])
 def chat(
     req: ChatRequest,
-    request: Request,
 ):
     try:
-        optional_external_id = getattr(request.state, "auth_external_id", None)
-        effective_user_id = str(optional_external_id) if optional_external_id else "anonymous"
-        if isinstance(req.user_id, str) and req.user_id.strip():
-            effective_user_id = req.user_id.strip()
-        _ = effective_user_id
-
-        reply = _build_local_chat_reply(req.message if isinstance(req.message, str) else "")
+        _ = req
         return {
-            "reply": reply,
-            "answer": reply,
+            "reply": "Boran AI \u00e7al\u0131\u015f\u0131yor",
+            "answer": "Boran AI \u00e7al\u0131\u015f\u0131yor",
         }
     except Exception:
-        safe_reply = "Boran AI su an guvenli modda calisiyor. Lutfen sorunuzu tekrar yazin."
         return {
-            "reply": safe_reply,
-            "answer": safe_reply,
+            "reply": "Boran AI \u00e7al\u0131\u015f\u0131yor",
+            "answer": "Boran AI \u00e7al\u0131\u015f\u0131yor",
         }
 
 
