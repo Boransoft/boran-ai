@@ -82,23 +82,9 @@ export function ChatScreen({ token, onLogout }: ChatScreenProps) {
     pushMessages([createMessage("system", text)]);
   };
 
-  const ensureSession = async (): Promise<boolean> => {
-    const hasToken = accessToken.length > 0;
-    console.log("[chat-screen] token:", hasToken ? "present" : "missing");
-    if (hasToken) {
-      return true;
-    }
-    pushSystemMessage("Oturum süresi doldu, tekrar giriş yap.");
-    await onLogout();
-    return false;
-  };
-
   const handleSendText = async () => {
     const text = inputText.trim();
     if (!text || anyBusy || isRecording) {
-      return;
-    }
-    if (!(await ensureSession())) {
       return;
     }
 
@@ -123,13 +109,6 @@ export function ChatScreen({ token, onLogout }: ChatScreenProps) {
       pushMessages([createMessage("assistant_text", assistantReply)]);
     } catch (error: any) {
       console.log("Text chat error:", error?.response?.data ?? error?.message ?? error);
-      const status = error?.response?.status;
-      const detailText = String(error?.response?.data?.detail ?? error?.response?.data?.message ?? error?.message ?? "");
-      if (status === 401 || detailText.includes("[401]") || detailText.includes("401")) {
-        pushSystemMessage("Oturum süresi doldu, tekrar giriş yap.");
-        await onLogout();
-        return;
-      }
 
       const detail =
         error?.response?.data?.detail ??
@@ -144,9 +123,6 @@ export function ChatScreen({ token, onLogout }: ChatScreenProps) {
 
   const handleVoicePress = async () => {
     if (isSending || isUploading) {
-      return;
-    }
-    if (!(await ensureSession())) {
       return;
     }
 
@@ -191,9 +167,6 @@ export function ChatScreen({ token, onLogout }: ChatScreenProps) {
 
   const handleUploadPress = async () => {
     if (anyBusy || isRecording) {
-      return;
-    }
-    if (!(await ensureSession())) {
       return;
     }
 

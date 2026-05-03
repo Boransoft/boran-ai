@@ -18,6 +18,9 @@ function sanitizeApiBaseUrl(url: string): string {
   if (!normalized) {
     return DEFAULT_API_BASE_URL;
   }
+  if (/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/i.test(normalized)) {
+    return DEFAULT_API_BASE_URL;
+  }
   if (/^https?:\/\/(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?$/i.test(normalized)) {
     return DEFAULT_API_BASE_URL;
   }

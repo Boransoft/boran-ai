@@ -1,12 +1,12 @@
 import axios from "axios";
 
-import { apiClient, toAbsoluteApiUrl, triggerAuthFailure } from "./api";
+import { apiClient, toAbsoluteApiUrl } from "./api";
 import { ChatResponse } from "../utils/types";
 
 const CHAT_ENDPOINT_URL = "https://boran-ai.onrender.com/chat";
 
 type SendChatMessageParams = {
-  token: string;
+  token?: string | null;
   message: string;
   includeReflectionContext?: boolean;
   saveToLongTerm?: boolean;
@@ -43,7 +43,7 @@ function extractDetailText(value: unknown): string {
 }
 
 export async function sendChatMessage(params: SendChatMessageParams): Promise<ChatResponse> {
-  const accessToken = params.token.trim();
+  const accessToken = (params.token ?? "").trim();
   const chatUrl = CHAT_ENDPOINT_URL;
 
   console.log("[chat-service] request:", {
@@ -52,21 +52,19 @@ export async function sendChatMessage(params: SendChatMessageParams): Promise<Ch
     url: chatUrl,
   });
 
-  if (!accessToken) {
-    await triggerAuthFailure();
-    throw new Error("Oturum suresi doldu. Lutfen tekrar giris yap.");
-  }
-
   try {
+    const headers: Record<string, string> = {};
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+
     const { data } = await apiClient.post<ChatResponse>(
       chatUrl,
       {
         message: params.message,
       },
       {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers,
       },
     );
 
