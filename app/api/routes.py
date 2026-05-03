@@ -96,37 +96,43 @@ def db_sync_user(
 
 
 def _build_local_chat_reply(message: str) -> str:
-    text = message.strip().lower()
+    text = (message or "").strip().lower()
 
     if "havas" in text:
         return (
-            "Havas ilmi, gelenekte harfler, sayilar ve dualar arasindaki manevi "
-            "iliskileri konu alan bir alandir; bu konularda guvenilir ve ehil "
-            "kaynaklardan ilerlemek onemlidir."
+            "Havas ilmi, geleneksel İslamî kültürde harfler, dualar, esmâlar, "
+            "vefkler ve manevi semboller üzerinden anlam kuran ezoterik bir "
+            "alandır. Sağlıklı çalışmak için kaynak, niyet, usul ve sınırların "
+            "dikkatli ayrılması gerekir."
         )
 
-    if any(keyword in text for keyword in ("islam", "islami kaynak", "tasavvuf")):
+    if any(keyword in text for keyword in ("islam", "islami", "tasavvuf", "kaynak")):
         return (
-            "Islami kaynaklarda temel referans Kur'an ve sahih sunnette aranir. "
-            "Tasavvuf ise ihlas, nefis terbiyesi ve guzel ahlaka odaklanan bir "
-            "manevi egitim yoludur."
+            "İslamî kaynaklar genel olarak Kur’an, hadis, tefsir, fıkıh, kelam, "
+            "tasavvuf ve klasik âlimlerin metinleri etrafında şekillenir. "
+            "Tasavvuf tarafında ise kalp terbiyesi, marifet, ahlak ve seyr ü "
+            "sülûk ana eksendir."
         )
 
-    return (
-        "Sorunu anladim. Daha net ve kisa bir yanit verebilmem icin konuyu biraz "
-        "daha detaylandirirsan adim adim yardimci olabilirim."
-    )
+    return "Sorunu aldım. Şu an hafif cevap motoru aktif; belge/RAG ve gelişmiş AI katmanını sırayla açacağız."
 
 
 @router.post("/chat", response_model=dict[str, str])
 def chat(
-    req: ChatRequest | None = None,
+    req: ChatRequest,
 ):
-    _ = req
-    return {
-        "reply": "Boran AI çalışıyor",
-        "answer": "Boran AI çalışıyor",
-    }
+    try:
+        reply = _build_local_chat_reply(req.message)
+        return {
+            "reply": reply,
+            "answer": reply,
+        }
+    except Exception:
+        fallback = "Sorunu aldım. Şu an hafif cevap motoru aktif; belge/RAG ve gelişmiş AI katmanını sırayla açacağız."
+        return {
+            "reply": fallback,
+            "answer": fallback,
+        }
 
 
 def _save_upload(file: UploadFile) -> Path:
