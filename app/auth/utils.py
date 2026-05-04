@@ -83,6 +83,7 @@ class JwtAuthMiddleware(BaseHTTPMiddleware):
             "/auth/login",
             "/auth/register",
             "/chat",
+            "/admin",
         }
         self.public_prefixes = (
             "/auth/register",
@@ -91,6 +92,9 @@ class JwtAuthMiddleware(BaseHTTPMiddleware):
             "/db/health",
             "/db/init",
             "/chat/",
+            "/admin/",
+            "/admin/assets",
+            "/admin/static",
             "/voice/demo",
             "/docs",
             "/openapi.json",
