@@ -14,7 +14,6 @@ from app.config import settings
 from app.ingest.parsers import SUPPORTED_EXTENSIONS, parse_file_to_text
 from app.rag.embeddings import encode_texts
 from app.rag.document_sources import register_document_source
-from app.rag.ingest import split_text
 from app.rag.ocr_utils import ocr_unavailable_warning
 
 
@@ -47,6 +46,38 @@ def _normalize_file_name(file_name: str) -> str:
     normalized = re.sub(r"[^a-z0-9._-]+", "", normalized)
     normalized = " ".join(normalized.split())
     return normalized
+
+
+def _chunk_text_by_tokens(
+    text: str,
+    chunk_tokens: int = 800,
+    overlap_tokens: int = 100,
+) -> list[str]:
+    cleaned = " ".join(text.split())
+    if not cleaned:
+        return []
+
+    tokens = cleaned.split(" ")
+    if not tokens:
+        return []
+
+    # Target range: 500-1000 tokens per chunk.
+    chunk_size = max(500, min(1000, chunk_tokens))
+    overlap_size = max(0, min(overlap_tokens, chunk_size - 1))
+    step = max(1, chunk_size - overlap_size)
+
+    chunks: list[str] = []
+    start = 0
+    while start < len(tokens):
+        end = min(len(tokens), start + chunk_size)
+        chunk = " ".join(tokens[start:end]).strip()
+        if chunk:
+            chunks.append(chunk)
+        if end >= len(tokens):
+            break
+        start += step
+
+    return chunks
 
 
 def _source_type(content_type: str, file_name: str) -> str:
@@ -132,7 +163,7 @@ def ingest_file_with_text(
             text="",
         )
 
-    chunks = split_text(text, chunk_size=500, overlap=50)
+    chunks = _chunk_text_by_tokens(text, chunk_tokens=800, overlap_tokens=100)
     if not chunks:
         return IngestOutput(
             result={
@@ -227,6 +258,7 @@ def ingest_file_with_text(
         source_type,
         len(chunks),
     )
+    logger.info("%s chunks saved", len(chunks))
 
     return IngestOutput(
         result={

@@ -17,6 +17,7 @@ from app.learning.reflection import reflection_engine
 from app.learning.scoring import memory_scoring_engine
 from app.learning.semantic_linking import semantic_linker
 from app.memory.long_term import long_term_memory
+from app.rag.retriever import retrieve_context
 from app.schemas import (
     ChatRequest,
     ConsolidationRunRequest,
@@ -95,26 +96,35 @@ def db_sync_user(
         }
 
 
-def _build_local_chat_reply(message: str) -> str:
-    text = (message or "").strip().lower()
+def _build_rag_prompt(message: str, context: str) -> str:
+    return (
+        "Kullanıcı sorusu:\n"
+        f"{message}\n\n"
+        "Bilgi:\n"
+        f"{context}\n\n"
+        "Bu bilgilere dayanarak cevap ver.\n"
+        "Eğer bilgi yoksa dürüstçe bilmiyorum de."
+    )
 
-    if "havas" in text:
-        return (
-            "Havas ilmi, geleneksel İslamî kültürde harfler, dualar, esmâlar, "
-            "vefkler ve manevi semboller üzerinden anlam kuran ezoterik bir "
-            "alandır. Sağlıklı çalışmak için kaynak, niyet, usul ve sınırların "
-            "dikkatli ayrılması gerekir."
-        )
 
-    if any(keyword in text for keyword in ("islam", "islami", "tasavvuf", "kaynak")):
-        return (
-            "İslamî kaynaklar genel olarak Kur’an, hadis, tefsir, fıkıh, kelam, "
-            "tasavvuf ve klasik âlimlerin metinleri etrafında şekillenir. "
-            "Tasavvuf tarafında ise kalp terbiyesi, marifet, ahlak ve seyr ü "
-            "sülûk ana eksendir."
-        )
+def _summarize_context_for_reply(
+    context_chunks: list[str],
+    prompt: str = "",
+    max_chars: int = 900,
+) -> str:
+    if not context_chunks:
+        return ""
 
-    return "Sorunu aldım. Şu an hafif cevap motoru aktif; belge/RAG ve gelişmiş AI katmanını sırayla açacağız."
+    if not prompt.strip():
+        return ""
+
+    merged = " ".join(chunk.strip() for chunk in context_chunks if chunk and chunk.strip())
+    merged = " ".join(merged.split())
+    if not merged:
+        return ""
+    if len(merged) <= max_chars:
+        return merged
+    return merged[: max_chars - 3].rstrip() + "..."
 
 
 @router.post("/chat", response_model=dict[str, str])
@@ -122,13 +132,33 @@ def chat(
     req: ChatRequest,
 ):
     try:
-        reply = _build_local_chat_reply(req.message)
+        message = (req.message or "").strip()
+        if not message:
+            fallback = "Bu konuda veri bulunamadı."
+            return {
+                "reply": fallback,
+                "answer": fallback,
+            }
+
+        contexts = retrieve_context(message, top_k=req.top_k or 5)
+        if not contexts:
+            fallback = "Bu konuda veri bulunamadı."
+            return {
+                "reply": fallback,
+                "answer": fallback,
+            }
+
+        context_text = "\n\n".join(contexts)
+        prompt = _build_rag_prompt(message=message, context=context_text)
+        reply = _summarize_context_for_reply(contexts, prompt=prompt)
+        if not reply:
+            reply = "Bu konuda veri bulunamadı."
         return {
             "reply": reply,
             "answer": reply,
         }
     except Exception:
-        fallback = "Sorunu aldım. Şu an hafif cevap motoru aktif; belge/RAG ve gelişmiş AI katmanını sırayla açacağız."
+        fallback = "Bu konuda veri bulunamadı."
         return {
             "reply": fallback,
             "answer": fallback,
