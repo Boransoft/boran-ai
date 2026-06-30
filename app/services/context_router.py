@@ -141,7 +141,7 @@ def analyze_question(message: str) -> RouteResult:
         return RouteResult(
             area="Genel",
             intent="genel_soru",
-            obsidian_keys=["AnaSayfa"],
+            obsidian_keys=[],
             confidence=0.35,
         )
 
@@ -224,6 +224,6 @@ def analyze_question(message: str) -> RouteResult:
     return RouteResult(
         area="Genel",
         intent="genel_soru",
-        obsidian_keys=["AnaSayfa"],
+        obsidian_keys=[],
         confidence=0.4,
     )

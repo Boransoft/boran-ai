@@ -9,7 +9,10 @@ def test_chat_general_message_calls_llm(monkeypatch):
     client = TestClient(app)
     calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(routes, "build_obsidian_context", lambda keys: "")
+    def fail_build_obsidian_context(keys):
+        raise AssertionError("Obsidian context should not be built for general chat")
+
+    monkeypatch.setattr(routes, "build_obsidian_context", fail_build_obsidian_context)
     monkeypatch.setattr(routes, "debug_obsidian_files", lambda keys: [])
     monkeypatch.setattr(
         routes,
@@ -22,6 +25,7 @@ def test_chat_general_message_calls_llm(monkeypatch):
             {
                 "message": message,
                 "area": route.area,
+                "obsidian_context": obsidian_context,
                 "document_context": document_context,
             }
         )
@@ -38,13 +42,20 @@ def test_chat_general_message_calls_llm(monkeypatch):
     assert payload["llm_error"] == ""
     assert payload["route"]["area"] == "Genel"
     assert payload["requires_document"] is False
+    assert payload["used_contexts"]["obsidian"] is False
+    assert payload["obsidian_context_chars"] == 0
+    assert payload["obsidian_files_found"] == 0
     assert calls and calls[0]["message"] == "merhaba"
+    assert calls[0]["obsidian_context"] == ""
 
 
 def test_chat_lm_error_is_exposed(monkeypatch):
     client = TestClient(app)
 
-    monkeypatch.setattr(routes, "build_obsidian_context", lambda keys: "")
+    def fail_build_obsidian_context(keys):
+        raise AssertionError("Obsidian context should not replace missing document context")
+
+    monkeypatch.setattr(routes, "build_obsidian_context", fail_build_obsidian_context)
     monkeypatch.setattr(routes, "debug_obsidian_files", lambda keys: [])
     monkeypatch.setattr(
         routes,
@@ -73,7 +84,10 @@ def test_chat_lm_error_is_exposed(monkeypatch):
 def test_chat_document_question_without_context_does_not_call_llm(monkeypatch):
     client = TestClient(app)
 
-    monkeypatch.setattr(routes, "build_obsidian_context", lambda keys: "")
+    def fail_build_obsidian_context(keys):
+        raise AssertionError("Obsidian context should not replace missing document context")
+
+    monkeypatch.setattr(routes, "build_obsidian_context", fail_build_obsidian_context)
     monkeypatch.setattr(routes, "debug_obsidian_files", lambda keys: [])
     monkeypatch.setattr(
         routes,
@@ -95,6 +109,9 @@ def test_chat_document_question_without_context_does_not_call_llm(monkeypatch):
     payload = response.json()
     assert payload["used_llm"] is False
     assert payload["requires_document"] is True
+    assert payload["used_contexts"]["obsidian"] is False
+    assert payload["obsidian_context_chars"] == 0
+    assert payload["obsidian_files_found"] == 0
     assert payload["router_bypass_reason"].startswith("explicit_document_keyword")
     assert "gerçek belge" in payload["reply"] or "gercek belge" in payload["reply"]
 
@@ -104,7 +121,7 @@ def test_chat_boranai_pdf_architecture_question_calls_llm(monkeypatch):
     called = {"value": False}
 
     monkeypatch.setattr(routes, "build_obsidian_context", lambda keys: "Boran.ai context")
-    monkeypatch.setattr(routes, "debug_obsidian_files", lambda keys: [])
+    monkeypatch.setattr(routes, "debug_obsidian_files", lambda keys: [{"exists": True, "key": "Boran.ai"}])
     monkeypatch.setattr(
         routes,
         "_build_document_context",
@@ -128,3 +145,6 @@ def test_chat_boranai_pdf_architecture_question_calls_llm(monkeypatch):
     assert payload["used_llm"] is True
     assert payload["requires_document"] is False
     assert payload["route"]["area"] == "Boran.ai"
+    assert payload["used_contexts"]["obsidian"] is True
+    assert payload["obsidian_context_chars"] > 0
+    assert payload["obsidian_files_found"] == 1

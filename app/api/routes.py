@@ -275,6 +275,18 @@ def _build_document_context(req: ChatRequest, user_id: str | None) -> tuple[str,
     return document_context, debug
 
 
+def _should_use_obsidian_context(route: object, requires_document: bool) -> bool:
+    if requires_document:
+        return False
+    return getattr(route, "area", "") == "Boran.ai"
+
+
+def _used_obsidian_files(debug_files: list[dict[str, object]], context: str) -> list[dict[str, object]]:
+    if not context.strip():
+        return []
+    return [item for item in debug_files if item.get("exists") is True]
+
+
 @router.post("/chat", response_model=dict[str, object])
 def chat(
     req: ChatRequest,
@@ -282,11 +294,15 @@ def chat(
 ):
     try:
         route = analyze_question(req.message)
-        obsidian_context = build_obsidian_context(route.obsidian_keys)
-        obsidian_debug = debug_obsidian_files(route.obsidian_keys)
         user_id = req.user_id or getattr(request.state, "auth_external_id", None)
         document_context, document_debug = _build_document_context(req=req, user_id=user_id)
         requires_doc, document_reason = _requires_source_document(req.message, route)
+        should_use_obsidian = _should_use_obsidian_context(route, requires_doc)
+        obsidian_context = build_obsidian_context(route.obsidian_keys) if should_use_obsidian else ""
+        obsidian_debug = _used_obsidian_files(
+            debug_obsidian_files(route.obsidian_keys) if obsidian_context.strip() else [],
+            obsidian_context,
+        )
         route_payload = _route_debug(route)
         route_payload["requires_document"] = requires_doc
         used_contexts = {
@@ -306,6 +322,7 @@ def chat(
                 "requires_document": True,
                 "router_bypass_reason": document_reason or "document_context_missing",
                 "obsidian_context_chars": len(obsidian_context),
+                "obsidian_files_found": len(obsidian_debug),
                 "obsidian_files": obsidian_debug,
                 "document_context": "",
                 "document_context_chars": 0,
@@ -330,6 +347,7 @@ def chat(
             "requires_document": requires_doc,
             "router_bypass_reason": "",
             "obsidian_context_chars": len(obsidian_context),
+            "obsidian_files_found": len(obsidian_debug),
             "obsidian_files": obsidian_debug,
             "document_context": document_context,
             "document_context_chars": len(document_context),

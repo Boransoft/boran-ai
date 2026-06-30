@@ -62,13 +62,12 @@ def _build_prompt(message: str, route: RouteResult, obsidian_context: str, docum
     safe_obsidian_context = obsidian_context[:LLM_CONTEXT_MAX_CHARS]
     safe_document_context = document_context[:LLM_CONTEXT_MAX_CHARS]
     obsidian = safe_obsidian_context.strip()
-    if not obsidian:
-        obsidian = "[Obsidian context bulunamadi veya OBSIDIAN_VAULT_PATH bos.]"
     document = safe_document_context.strip()
     if not document:
         document = "[Kaynak belge bulunamadi.]"
 
     concepts = ", ".join(route.concepts) if route.concepts else "-"
+    obsidian_section = f"\nKisaltilmis Obsidian baglami:\n{obsidian}\n" if obsidian else ""
 
     return (
         f"Kullanici sorusu:\n{message}\n\n"
@@ -76,7 +75,7 @@ def _build_prompt(message: str, route: RouteResult, obsidian_context: str, docum
         f"Konu: {route.topic or '-'}\n"
         f"Niyet: {route.intent or '-'}\n"
         f"Kavramlar: {concepts}\n\n"
-        f"Kisaltilmis Obsidian baglami:\n{obsidian}\n\n"
+        f"{obsidian_section}"
         f"Kaynak belge parcasi:\n{document}"
     )
 
