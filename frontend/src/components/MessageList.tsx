@@ -7,9 +7,10 @@ type MessageListProps = {
   messages: AppMessage[];
   onAudioPlay?: () => void;
   onAudioEnded?: () => void;
+  voiceEnabled?: boolean;
 };
 
-export default function MessageList({ messages, onAudioPlay, onAudioEnded }: MessageListProps) {
+export default function MessageList({ messages, onAudioPlay, onAudioEnded, voiceEnabled = false }: MessageListProps) {
   const containerRef = useRef<HTMLElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const shouldAutoScrollRef = useRef(true);
@@ -44,7 +45,13 @@ export default function MessageList({ messages, onAudioPlay, onAudioEnded }: Mes
     >
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-3 sm:gap-3.5">
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} onAudioPlay={onAudioPlay} onAudioEnded={onAudioEnded} />
+          <MessageBubble
+            key={message.id}
+            message={message}
+            onAudioPlay={onAudioPlay}
+            onAudioEnded={onAudioEnded}
+            voiceEnabled={voiceEnabled}
+          />
         ))}
         <div ref={bottomRef} />
       </div>

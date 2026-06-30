@@ -8,8 +8,11 @@ import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { sendChatMessage } from "../services/chatService";
 import { uploadDocument } from "../services/documentService";
 import { chatWithVoice } from "../services/voiceService";
+import { isVoiceEnabled } from "../utils/env";
 import { theme } from "../utils/theme";
 import { ChatMessage } from "../utils/types";
+
+const VOICE_ENABLED = isVoiceEnabled();
 
 type MainScreenProps = {
   token: string;
@@ -32,7 +35,7 @@ function createMessage(type: ChatMessage["type"], text?: string, audioUrl?: stri
 
 export function MainScreen({ token, onLogout }: MainScreenProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    createMessage("system", "Tek ekran aktif. Chat, voice ve pdf yukleme hazir."),
+    createMessage("system", "Tek ekran aktif. Chat ve pdf yukleme hazir."),
   ]);
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -41,7 +44,10 @@ export function MainScreen({ token, onLogout }: MainScreenProps) {
   const { isRecording, startRecording, stopRecording } = useAudioRecorder();
   const listRef = useRef<FlatList<ChatMessage> | null>(null);
 
-  const anyBusy = useMemo(() => isSending || isVoiceLoading || isUploading, [isSending, isVoiceLoading, isUploading]);
+  const anyBusy = useMemo(
+    () => isSending || isUploading || (VOICE_ENABLED && isVoiceLoading),
+    [isSending, isVoiceLoading, isUploading],
+  );
 
   const pushMessages = (next: ChatMessage[]) => {
     setMessages((prev) => {
@@ -59,7 +65,7 @@ export function MainScreen({ token, onLogout }: MainScreenProps) {
 
   const handleSendText = async () => {
     const text = inputText.trim();
-    if (!text || anyBusy || isRecording) {
+    if (!text || anyBusy || (VOICE_ENABLED && isRecording)) {
       return;
     }
 
@@ -82,6 +88,9 @@ export function MainScreen({ token, onLogout }: MainScreenProps) {
   };
 
   const handleVoicePress = async () => {
+    if (!VOICE_ENABLED) {
+      return;
+    }
     if (isSending || isUploading) {
       return;
     }
@@ -122,7 +131,7 @@ export function MainScreen({ token, onLogout }: MainScreenProps) {
   };
 
   const handleUploadPress = async () => {
-    if (anyBusy || isRecording) {
+    if (anyBusy || (VOICE_ENABLED && isRecording)) {
       return;
     }
     try {
@@ -186,6 +195,7 @@ export function MainScreen({ token, onLogout }: MainScreenProps) {
         isSending={isSending}
         isVoiceLoading={isVoiceLoading}
         isUploading={isUploading}
+        voiceEnabled={VOICE_ENABLED}
       />
     </SafeAreaView>
   );

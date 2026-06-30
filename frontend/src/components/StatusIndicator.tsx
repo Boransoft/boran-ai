@@ -5,6 +5,7 @@ type StatusIndicatorProps = {
   voiceStatus: VoiceStatus;
   systemStatus: SystemStatus;
   message: string;
+  voiceEnabled?: boolean;
 };
 
 const voiceTone: Record<VoiceStatus, string> = {
@@ -35,20 +36,22 @@ const systemTone: Record<SystemStatus, string> = {
   error: "text-rose-300",
 };
 
-export default function StatusIndicator({ voiceStatus, systemStatus, message }: StatusIndicatorProps) {
+export default function StatusIndicator({ voiceStatus, systemStatus, message, voiceEnabled = false }: StatusIndicatorProps) {
   return (
     <div className="px-3 py-1 sm:px-4">
       <div className="mx-auto flex w-full max-w-4xl items-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/60 px-2.5 py-1.5">
-        <span
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${voiceTone[voiceStatus]}`}
-        >
+        {voiceEnabled ? (
           <span
-            className={`inline-block h-1.5 w-1.5 rounded-full ${voiceDotTone[voiceStatus]} ${
-              voiceStatus === "recording" || voiceStatus === "processing" ? "animate-pulse" : ""
-            }`}
-          />
-          {voiceLabel[voiceStatus]}
-        </span>
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${voiceTone[voiceStatus]}`}
+          >
+            <span
+              className={`inline-block h-1.5 w-1.5 rounded-full ${voiceDotTone[voiceStatus]} ${
+                voiceStatus === "recording" || voiceStatus === "processing" ? "animate-pulse" : ""
+              }`}
+            />
+            {voiceLabel[voiceStatus]}
+          </span>
+        ) : null}
         <span className={`min-w-0 truncate text-[11px] sm:text-xs ${systemTone[systemStatus]}`}>{message}</span>
       </div>
     </div>

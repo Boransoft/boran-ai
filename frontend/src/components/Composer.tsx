@@ -11,6 +11,7 @@ type ComposerProps = {
   voiceStatus: VoiceStatus;
   uploadInProgress: boolean;
   maxUploadSizeMb: number;
+  voiceEnabled?: boolean;
   onTextChange: (value: string) => void;
   onSend: () => void;
   onVoiceToggle: () => void;
@@ -25,6 +26,7 @@ export default function Composer({
   voiceStatus,
   uploadInProgress,
   maxUploadSizeMb,
+  voiceEnabled = false,
   onTextChange,
   onSend,
   onVoiceToggle,
@@ -67,24 +69,30 @@ export default function Composer({
     <footer className="sticky bottom-0 z-30 border-t border-slate-700/80 bg-slate-950/95 px-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur sm:px-4 sm:pb-3">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-2.5">
         <div className="flex items-center justify-between gap-2 text-[11px] text-slate-300">
-          <button
-            type="button"
-            onClick={onRequestMicPermission}
-            className="h-9 shrink-0 rounded-lg border border-slate-700 bg-slate-900/80 px-3 text-[11px] font-medium text-slate-200 transition hover:border-slate-500 active:scale-95"
-          >
-            Mikrofon izni
-          </button>
-          <div className="flex min-w-0 items-center justify-end gap-1.5">
-            <span
-              className={`inline-flex min-w-0 items-center gap-1.5 truncate rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${voiceStateTone}`}
+          {voiceEnabled ? (
+            <button
+              type="button"
+              onClick={onRequestMicPermission}
+              className="h-9 shrink-0 rounded-lg border border-slate-700 bg-slate-900/80 px-3 text-[11px] font-medium text-slate-200 transition hover:border-slate-500 active:scale-95"
             >
+              Mikrofon izni
+            </button>
+          ) : (
+            <span className="hidden sm:block" />
+          )}
+          <div className="flex min-w-0 items-center justify-end gap-1.5">
+            {voiceEnabled ? (
               <span
-                className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${voiceDotTone} ${
-                  voiceStatus === "recording" || voiceStatus === "processing" ? "animate-pulse" : ""
-                }`}
-              />
-              <span className="truncate">{voiceStateText}</span>
-            </span>
+                className={`inline-flex min-w-0 items-center gap-1.5 truncate rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${voiceStateTone}`}
+              >
+                <span
+                  className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${voiceDotTone} ${
+                    voiceStatus === "recording" || voiceStatus === "processing" ? "animate-pulse" : ""
+                  }`}
+                />
+                <span className="truncate">{voiceStateText}</span>
+              </span>
+            ) : null}
             <span className="hidden text-[11px] text-slate-400 sm:inline">Max: {maxUploadSizeMb} MB</span>
             {uploadInProgress ? (
               <span className="inline-flex shrink-0 rounded-full border border-amber-500/50 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
@@ -101,11 +109,13 @@ export default function Composer({
             onKeyDown={onKeyDown}
             disabled={busy}
             rows={2}
-            placeholder="Mesaj yaz, mikrofona bas veya belge yukle..."
+            placeholder={voiceEnabled ? "Mesaj yaz, mikrofona bas veya belge yukle..." : "Mesaj yaz veya belge yukle..."}
             className="min-h-[52px] max-h-40 flex-1 resize-none rounded-2xl border border-slate-700 bg-slate-900 px-3.5 py-2.5 text-[16px] leading-6 text-slate-100 outline-none ring-cyan-400/70 transition focus:ring disabled:opacity-60 sm:text-sm sm:leading-5"
           />
 
-          <VoiceButton isRecording={isRecording} status={voiceStatus} disabled={busy} onClick={onVoiceToggle} />
+          {voiceEnabled ? (
+            <VoiceButton isRecording={isRecording} status={voiceStatus} disabled={busy} onClick={onVoiceToggle} />
+          ) : null}
           <UploadButton disabled={uploadInProgress} onSelect={onUploadFiles} maxUploadSizeMb={maxUploadSizeMb} />
 
           <button

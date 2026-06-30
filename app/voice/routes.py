@@ -4,8 +4,10 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
 
 from app.auth.routes import get_current_external_id
+from app.config import settings
 from app.voice.schemas import (
     VoiceChatResponse,
     VoiceHealthResponse,
@@ -13,13 +15,28 @@ from app.voice.schemas import (
     VoiceSpeakResponse,
     VoiceTranscribeResponse,
 )
-from app.voice.service import VoiceValidationError, voice_service
 from app.voice.stt import STTError
 from app.voice.tts import TTSError
 
 
 router = APIRouter(prefix="/voice", tags=["voice"])
 DEMO_DIR = Path(__file__).resolve().parent.parent / "voice_demo"
+VOICE_DISABLED_PAYLOAD = {
+    "detail": "voice_disabled",
+    "message": "Sesli konuşma özelliği geçici olarak kapalı.",
+}
+
+
+def _voice_disabled_response() -> JSONResponse | None:
+    if settings.voice_enabled:
+        return None
+    return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=VOICE_DISABLED_PAYLOAD)
+
+
+def _get_voice_service():
+    from app.voice.service import VoiceValidationError, voice_service
+
+    return voice_service, VoiceValidationError
 
 
 def _media_type(audio_format: str) -> str:
@@ -68,6 +85,10 @@ def voice_health(
     current_user_id: str = Depends(get_current_external_id),
 ):
     _ = current_user_id
+    disabled = _voice_disabled_response()
+    if disabled is not None:
+        return disabled
+    voice_service, _ = _get_voice_service()
     return voice_service.health()
 
 
@@ -78,7 +99,11 @@ def voice_transcribe(
     language: str | None = Form(default=None),
     current_user_id: str = Depends(get_current_external_id),
 ):
+    disabled = _voice_disabled_response()
+    if disabled is not None:
+        return disabled
     upload = _resolve_upload(audio=audio, fallback_file=file)
+    voice_service, VoiceValidationError = _get_voice_service()
     try:
         result = voice_service.transcribe_audio(
             user_id=current_user_id,
@@ -108,6 +133,10 @@ def voice_speak(
     req: VoiceSpeakRequest,
     current_user_id: str = Depends(get_current_external_id),
 ):
+    disabled = _voice_disabled_response()
+    if disabled is not None:
+        return disabled
+    voice_service, _ = _get_voice_service()
     try:
         result = voice_service.synthesize_text(
             user_id=current_user_id,
@@ -152,7 +181,11 @@ def voice_chat(
     debug_timing: bool = Query(default=False),
     current_user_id: str = Depends(get_current_external_id),
 ):
+    disabled = _voice_disabled_response()
+    if disabled is not None:
+        return disabled
     upload = _resolve_upload(audio=audio, fallback_file=file)
+    voice_service, VoiceValidationError = _get_voice_service()
     try:
         result = voice_service.voice_chat(
             user_id=current_user_id,
@@ -178,6 +211,10 @@ def voice_audio(
     file_name: str,
     current_user_id: str = Depends(get_current_external_id),
 ):
+    disabled = _voice_disabled_response()
+    if disabled is not None:
+        return disabled
+    voice_service, _ = _get_voice_service()
     try:
         path = voice_service.resolve_output_file(user_id=current_user_id, file_name=file_name)
     except PermissionError as exc:

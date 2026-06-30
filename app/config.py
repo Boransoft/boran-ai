@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 60
     admin_identifiers: str = ""
 
+    voice_enabled: bool = False
     voice_stt_provider: str = "faster_whisper"
     voice_tts_provider: str = "edge"
     whisper_model_size: str = "base"
@@ -84,6 +85,9 @@ class Settings(BaseSettings):
     voice_file_ttl_hours: int = 24
     voice_tts_max_chars: int = 700
     voice_warmup_enabled: bool = True
+    obsidian_context_enabled: bool = True
+    obsidian_vault_path: str = ""
+    obsidian_context_max_chars: int = 6000
     chat_doc_context_limit: int = 2
     chat_conversation_context_limit: int = 2
     chat_correction_context_limit: int = 1

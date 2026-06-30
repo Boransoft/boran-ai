@@ -15,6 +15,7 @@ type ComposerProps = {
   isSending: boolean;
   isVoiceLoading: boolean;
   isUploading: boolean;
+  voiceEnabled?: boolean;
 };
 
 export function Composer({
@@ -27,6 +28,7 @@ export function Composer({
   isSending,
   isVoiceLoading,
   isUploading,
+  voiceEnabled = false,
 }: ComposerProps) {
   const busy = isSending || isVoiceLoading || isUploading;
   const canSend = value.trim().length > 0 && !busy;
@@ -41,8 +43,14 @@ export function Composer({
         placeholderTextColor={theme.colors.mutedText}
         editable={!busy}
       />
-      <VoiceButton isRecording={isRecording} isBusy={isVoiceLoading} onPress={onVoicePress} disabled={isSending || isUploading} />
-      <UploadButton isLoading={isUploading} onPress={onUploadPress} disabled={isSending || isVoiceLoading || isRecording} />
+      {voiceEnabled ? (
+        <VoiceButton isRecording={isRecording} isBusy={isVoiceLoading} onPress={onVoicePress} disabled={isSending || isUploading} />
+      ) : null}
+      <UploadButton
+        isLoading={isUploading}
+        onPress={onUploadPress}
+        disabled={isSending || (voiceEnabled && (isVoiceLoading || isRecording))}
+      />
       <Pressable style={[styles.sendButton, !canSend ? styles.sendDisabled : undefined]} onPress={onSend} disabled={!canSend}>
         {isSending ? <ActivityIndicator size="small" color={theme.colors.text} /> : <Text style={styles.sendLabel}>GONDER</Text>}
       </Pressable>

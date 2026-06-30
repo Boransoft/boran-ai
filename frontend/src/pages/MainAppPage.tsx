@@ -5,6 +5,7 @@ import MessageList from "../components/MessageList";
 import StatusIndicator from "../components/StatusIndicator";
 import TopBar from "../components/TopBar";
 import UploadToastStack, { type UploadToastItem } from "../components/UploadToastStack";
+import { VOICE_ENABLED } from "../config/features";
 import { MAX_UPLOAD_FILE_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../config/upload";
 import { useRecorder } from "../hooks/useRecorder";
 import { sendChatMessage } from "../services/chatService";
@@ -406,7 +407,7 @@ export default function MainAppPage() {
   const voiceActionInFlightRef = useRef(false);
   const audioUrlsRef = useRef<string[]>([]);
   const recorder = useRecorder();
-  const busy = useMemo(() => voiceStatus === "processing", [voiceStatus]);
+  const busy = useMemo(() => VOICE_ENABLED && voiceStatus === "processing", [voiceStatus]);
 
   const dismissUploadToast = useCallback((fileId: string, status: UploadFileState["status"]) => {
     dismissedUploadToastsRef.current.add(uploadToastSignature(fileId, status));
@@ -485,6 +486,9 @@ export default function MainAppPage() {
   }, [currentUserExternalId, systemMessage, systemStatus, text, voiceError, voiceProvider, voiceStatus]);
 
   useEffect(() => {
+    if (!VOICE_ENABLED) {
+      return;
+    }
     if (!recorder.error) {
       return;
     }
@@ -505,7 +509,7 @@ export default function MainAppPage() {
 
   const onSendText = useCallback(async () => {
     const message = text.trim();
-    if (!token || !message || busy || recorder.isRecording) {
+    if (!token || !message || busy || (VOICE_ENABLED && recorder.isRecording)) {
       return;
     }
 
@@ -554,6 +558,9 @@ export default function MainAppPage() {
   }, [addMessage, busy, currentUserExternalId, recorder.isRecording, setSystemState, text, token]);
 
   const onRequestMicPermission = useCallback(async () => {
+    if (!VOICE_ENABLED) {
+      return;
+    }
     const granted = await recorder.requestPermission();
     if (granted) {
       setSystemState("success", SystemMessages.microphonePermissionGranted);
@@ -566,6 +573,9 @@ export default function MainAppPage() {
   }, [addMessage, recorder, setSystemState]);
 
   const onVoiceToggle = useCallback(async () => {
+    if (!VOICE_ENABLED) {
+      return;
+    }
     if (!token || busy || voiceActionInFlightRef.current) {
       return;
     }
@@ -781,18 +791,28 @@ export default function MainAppPage() {
     <div className="relative flex h-[100dvh] min-h-[100svh] flex-col overflow-hidden bg-slate-950 text-slate-100">
       <TopBar user={user} onLogout={onLogout} showAdminSwitch={Boolean(user?.is_admin)} />
       <UploadToastStack toasts={uploadToasts} onDismiss={dismissUploadToast} />
-      <StatusIndicator voiceStatus={voiceStatus} systemStatus={systemStatus} message={systemMessage} />
+      <StatusIndicator
+        voiceStatus={voiceStatus}
+        systemStatus={systemStatus}
+        message={systemMessage}
+        voiceEnabled={VOICE_ENABLED}
+      />
 
       <MessageList
         messages={messages}
         onAudioPlay={() => {
-          setVoiceStatus("playing");
-          setSystemState("loading", SystemMessages.voicePlaying);
+          if (VOICE_ENABLED) {
+            setVoiceStatus("playing");
+            setSystemState("loading", SystemMessages.voicePlaying);
+          }
         }}
         onAudioEnded={() => {
-          setVoiceStatus("idle");
-          setSystemState("idle", SystemMessages.idle);
+          if (VOICE_ENABLED) {
+            setVoiceStatus("idle");
+            setSystemState("idle", SystemMessages.idle);
+          }
         }}
+        voiceEnabled={VOICE_ENABLED}
       />
 
       <Composer
@@ -807,6 +827,7 @@ export default function MainAppPage() {
         onUploadFiles={onUploadFiles}
         onRequestMicPermission={onRequestMicPermission}
         maxUploadSizeMb={MAX_UPLOAD_SIZE_MB}
+        voiceEnabled={VOICE_ENABLED}
       />
     </div>
   );

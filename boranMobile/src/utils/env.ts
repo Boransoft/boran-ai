@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API_BASE_URL_KEY = "boran.ai.apiBaseUrl";
 const DEFAULT_API_BASE_URL = "https://boran-ai.onrender.com";
+const VOICE_ENABLED = false;
 
 function normalizeApiBaseUrl(value: string): string {
   return value.trim().replace(/\/+$/, "");
@@ -20,6 +21,10 @@ function ensureValidApiBaseUrl(value: string): string {
 
 export function getApiBaseUrl(): string {
   return DEFAULT_API_BASE_URL;
+}
+
+export function isVoiceEnabled(): boolean {
+  return VOICE_ENABLED;
 }
 
 export async function getStoredApiBaseUrl(): Promise<string | null> {

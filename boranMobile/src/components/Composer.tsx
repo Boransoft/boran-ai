@@ -16,6 +16,7 @@ type ComposerProps = {
   isVoiceLoading: boolean;
   isUploading: boolean;
   bottomInset?: number;
+  voiceEnabled?: boolean;
 };
 
 const INPUT_BAR_BASE_HEIGHT = 60;
@@ -31,6 +32,7 @@ export function Composer({
   isVoiceLoading,
   isUploading,
   bottomInset = 8,
+  voiceEnabled = false,
 }: ComposerProps) {
   const busy = isSending || isVoiceLoading || isUploading;
   const canSend = value.trim().length > 0 && !busy;
@@ -55,8 +57,14 @@ export function Composer({
         returnKeyType="send"
         onSubmitEditing={canSend ? onSend : undefined}
       />
-      <VoiceButton isRecording={isRecording} isBusy={isVoiceLoading} onPress={onVoicePress} disabled={isSending || isUploading} />
-      <UploadButton isLoading={isUploading} onPress={onUploadPress} disabled={isSending || isVoiceLoading || isRecording} />
+      {voiceEnabled ? (
+        <VoiceButton isRecording={isRecording} isBusy={isVoiceLoading} onPress={onVoicePress} disabled={isSending || isUploading} />
+      ) : null}
+      <UploadButton
+        isLoading={isUploading}
+        onPress={onUploadPress}
+        disabled={isSending || (voiceEnabled && (isVoiceLoading || isRecording))}
+      />
       <Pressable style={[styles.sendButton, !canSend ? styles.sendDisabled : undefined]} onPress={onSend} disabled={!canSend}>
         {isSending ? <ActivityIndicator size="small" color={theme.colors.text} /> : <Text style={styles.sendLabel}>GONDER</Text>}
       </Pressable>

@@ -8,6 +8,7 @@ type MessageBubbleProps = {
   message: AppMessage;
   onAudioPlay?: () => void;
   onAudioEnded?: () => void;
+  voiceEnabled?: boolean;
 };
 
 function roleLabel(type: AppMessage["type"]): string {
@@ -76,7 +77,7 @@ function extractSources(message: AppMessage): MessageSource[] {
   return normalized;
 }
 
-export default function MessageBubble({ message, onAudioPlay, onAudioEnded }: MessageBubbleProps) {
+export default function MessageBubble({ message, onAudioPlay, onAudioEnded, voiceEnabled = false }: MessageBubbleProps) {
   const sources = extractSources(message);
   return (
     <article
@@ -112,7 +113,7 @@ export default function MessageBubble({ message, onAudioPlay, onAudioEnded }: Me
         </div>
       ) : null}
 
-      {message.audioUrl ? (
+      {voiceEnabled && message.audioUrl ? (
         <AudioPlayer
           src={message.audioUrl}
           autoPlay={message.type === "assistant_voice"}

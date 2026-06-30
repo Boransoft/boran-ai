@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { PermissionsAndroid, Platform } from "react-native";
-import AudioRecord from "react-native-audio-record";
+import { isVoiceEnabled } from "../utils/env";
+
+declare const require: (name: string) => any;
 
 type RecorderHook = {
   isRecording: boolean;
@@ -26,6 +28,10 @@ export function useAudioRecorder(): RecorderHook {
   const [isRecording, setIsRecording] = useState(false);
 
   useEffect(() => {
+    if (!isVoiceEnabled()) {
+      return;
+    }
+    const AudioRecord = require("react-native-audio-record");
     AudioRecord.init({
       sampleRate: 16000,
       channels: 1,
@@ -36,13 +42,18 @@ export function useAudioRecorder(): RecorderHook {
   }, []);
 
   const startRecording = async () => {
+    if (!isVoiceEnabled()) {
+      throw new Error("Sesli konuşma özelliği geçici olarak kapalı.");
+    }
     await ensureRecordPermission();
+    const AudioRecord = require("react-native-audio-record");
     await AudioRecord.start();
     setIsRecording(true);
   };
 
   const stopRecording = async (): Promise<string> => {
     try {
+      const AudioRecord = require("react-native-audio-record");
       const path = await AudioRecord.stop();
       return path;
     } finally {

@@ -5,10 +5,15 @@ const ANDROID_EMULATOR_BASE_URL = "http://10.0.2.2:8000";
 
 // Emulatorde gelistirme icin true, fiziksel cihazda false yapin.
 const USE_ANDROID_EMULATOR = true;
+const VOICE_ENABLED = false;
 
 export function getApiBaseUrl(): string {
   if (Platform.OS === "android" && USE_ANDROID_EMULATOR) {
     return ANDROID_EMULATOR_BASE_URL;
   }
   return DEVICE_BASE_URL;
+}
+
+export function isVoiceEnabled(): boolean {
+  return VOICE_ENABLED;
 }
