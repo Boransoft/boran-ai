@@ -13,6 +13,27 @@ export type ChatResponse = {
   user_id: string;
   reply: string;
   memory_size?: number;
+  used_llm?: boolean;
+  llm_error?: string;
+  route?: {
+    area?: string;
+    topic?: string;
+    intent?: string;
+    concepts?: string[];
+    obsidian_keys?: string[];
+    source_pool?: string;
+    confidence?: number;
+    requires_document?: boolean;
+  };
+  domain?: string;
+  used_contexts?: {
+    obsidian?: boolean;
+    document?: boolean;
+  };
+  requires_document?: boolean;
+  router_bypass_reason?: string;
+  obsidian_context_chars?: number;
+  document_context_chars?: number;
   context_hits?: number;
   doc_context_hits?: number;
   doc_sources?: string[];
