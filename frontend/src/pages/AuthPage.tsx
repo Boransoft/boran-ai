@@ -1,8 +1,40 @@
 import { FormEvent, useState } from "react";
 
 import { login, register } from "../services/authService";
+import { getApiBaseUrl } from "../services/api";
 import { useAppStore } from "../store/appStore";
 import { useAuthStore } from "../store/authStore";
+
+function authErrorMessage(error: unknown, mode: "login" | "register"): string {
+  const raw = error instanceof Error ? error.message : "Kimlik dogrulama basarisiz.";
+  const text = raw.trim();
+
+  if (/invalid credentials/i.test(text)) {
+    return "Invalid credentials.";
+  }
+  if (mode === "register" && /email already exists/i.test(text)) {
+    return "Bu email zaten kayitli.";
+  }
+  if (mode === "register" && /username already exists/i.test(text)) {
+    return "Bu kullanici adi zaten kayitli.";
+  }
+  if (mode === "register" && /already exists|same email or username/i.test(text)) {
+    return "Bu kullanici adi veya email zaten kayitli.";
+  }
+  if (/422|validation/i.test(text)) {
+    return "Form alanlarini kontrol et. Sifre en az 8 karakter, kullanici adi en az 3 karakter olmali.";
+  }
+  if (/database_schema_missing|schema missing|missing tables/i.test(text)) {
+    return "Veritabani semasi eksik. Render Postgres tablolari olusturulmali.";
+  }
+  if (/database_unavailable|database unavailable/i.test(text)) {
+    return "Veritabani baglantisi kurulamadi. Render DATABASE_URL ayari kontrol edilmeli.";
+  }
+  if (/backend'e ulasilamadi|backend'e ulaşılamadı|failed to fetch|load failed|network/i.test(text)) {
+    return `Backend'e ulasilamadi. API: ${getApiBaseUrl()}`;
+  }
+  return text || (mode === "register" ? "Kayit islemi basarisiz oldu." : "Giris basarisiz oldu.");
+}
 
 export default function AuthPage() {
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -35,7 +67,7 @@ export default function AuthPage() {
       setAuth(response.access_token, response.user, response.expires_in);
       setSystemState("success", "Giris basarili.");
     } catch (err) {
-      const detail = err instanceof Error ? err.message : "Kimlik dogrulama basarisiz.";
+      const detail = authErrorMessage(err, mode);
       setError(detail);
       setSystemState("error", detail);
     } finally {
@@ -135,4 +167,3 @@ export default function AuthPage() {
     </main>
   );
 }
-

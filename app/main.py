@@ -9,6 +9,7 @@ from app.api.routes import router as api_router
 from app.auth.routes import router as auth_router
 from app.auth.utils import JwtAuthMiddleware
 from app.config import settings
+from app.db.bootstrap import init_database
 from app.learning.scheduler import consolidation_scheduler
 from app.voice.routes import router as voice_router
 
@@ -78,6 +79,16 @@ app.include_router(voice_router)
 def startup_event() -> None:
     startup_begin = perf_counter()
     logger.info("startup_begin")
+
+    if settings.database_url:
+        step_begin = perf_counter()
+        try:
+            init_database()
+            logger.info("startup_step db_init_s=%.3f", perf_counter() - step_begin)
+        except Exception:
+            logger.exception("startup_step db_init_failed_s=%.3f", perf_counter() - step_begin)
+    else:
+        logger.info("startup_step db_init_skipped database_url_configured=false")
 
     step_begin = perf_counter()
     consolidation_scheduler.start()

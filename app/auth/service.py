@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError, SQLAlchemyError
 
 from app.auth.utils import create_access_token, hash_password, verify_password
 from app.config import settings
@@ -54,6 +54,26 @@ def _should_be_admin(user: User) -> bool:
     return any(candidate in configured for candidate in candidates)
 
 
+def _database_error_detail(exc: Exception) -> str:
+    text = str(exc).lower()
+    if isinstance(exc, ProgrammingError) and (
+        "does not exist" in text
+        or "undefinedtable" in text
+        or "relation" in text
+    ):
+        return "database_schema_missing"
+    if isinstance(exc, OperationalError):
+        return "database_unavailable"
+    return "database_unavailable"
+
+
+def _raise_database_unavailable(exc: Exception) -> None:
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail=_database_error_detail(exc),
+    ) from exc
+
+
 def _find_user_by_email(session, normalized_email: str) -> User | None:
     return session.execute(
         select(User).where(User.email == normalized_email)
@@ -72,43 +92,48 @@ def register_user(
     password: str,
     display_name: str | None = None,
 ) -> dict[str, object]:
-    normalized_email = _normalize_email(email)
-    normalized_username = _normalize_username(username)
+    try:
+        normalized_email = _normalize_email(email)
+        normalized_username = _normalize_username(username)
 
-    with get_session() as session:
-        existing_email = _find_user_by_email(session, normalized_email)
-        if existing_email:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Email already exists.",
-            )
+        with get_session() as session:
+            existing_email = _find_user_by_email(session, normalized_email)
+            if existing_email:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Email already exists.",
+                )
 
-        existing_username = _find_user_by_username(session, normalized_username)
-        if existing_username:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Username already exists.",
-            )
+            existing_username = _find_user_by_username(session, normalized_username)
+            if existing_username:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Username already exists.",
+                )
 
-        user = User(
-            external_id=f"user_{uuid4().hex}",
-            username=normalized_username,
-            email=normalized_email,
-            hashed_password=hash_password(password),
-            display_name=(display_name.strip() if display_name else None),
-            is_active=True,
-        )
-        user.is_admin = _should_be_admin(user)
-        session.add(user)
-        try:
-            session.commit()
-        except IntegrityError:
-            session.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="User with same email or username already exists.",
+            user = User(
+                external_id=f"user_{uuid4().hex}",
+                username=normalized_username,
+                email=normalized_email,
+                hashed_password=hash_password(password),
+                display_name=(display_name.strip() if display_name else None),
+                is_active=True,
             )
-        session.refresh(user)
+            user.is_admin = _should_be_admin(user)
+            session.add(user)
+            try:
+                session.commit()
+            except IntegrityError:
+                session.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="User with same email or username already exists.",
+                )
+            session.refresh(user)
+    except HTTPException:
+        raise
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_database_unavailable(exc)
 
     token, expires_in = create_access_token(str(user.external_id))
     return {
@@ -120,33 +145,38 @@ def register_user(
 
 
 def login_user(identifier: str, password: str) -> dict[str, object]:
-    normalized = identifier.strip().lower()
-    with get_session() as session:
-        user = _find_user_by_email(session, normalized)
-        if not user:
-            user = _find_user_by_username(session, normalized)
+    try:
+        normalized = identifier.strip().lower()
+        with get_session() as session:
+            user = _find_user_by_email(session, normalized)
+            if not user:
+                user = _find_user_by_username(session, normalized)
 
-        if not user or not user.hashed_password:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials.",
-            )
-        if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is inactive.",
-            )
-        if not verify_password(password, user.hashed_password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials.",
-            )
+            if not user or not user.hashed_password:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid credentials.",
+                )
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User is inactive.",
+                )
+            if not verify_password(password, user.hashed_password):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid credentials.",
+                )
 
-        user.last_login_at = datetime.now(timezone.utc)
-        if _should_be_admin(user) and not user.is_admin:
-            user.is_admin = True
-        session.commit()
-        session.refresh(user)
+            user.last_login_at = datetime.now(timezone.utc)
+            if _should_be_admin(user) and not user.is_admin:
+                user.is_admin = True
+            session.commit()
+            session.refresh(user)
+    except HTTPException:
+        raise
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_database_unavailable(exc)
 
     token, expires_in = create_access_token(str(user.external_id))
     return {
@@ -158,25 +188,30 @@ def login_user(identifier: str, password: str) -> dict[str, object]:
 
 
 def get_user_by_external_id(external_id: str) -> User:
-    with get_session() as session:
-        user = session.execute(
-            select(User).where(User.external_id == external_id)
-        ).scalar_one_or_none()
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not found.",
-            )
-        if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is inactive.",
-            )
-        if _should_be_admin(user) and not user.is_admin:
-            user.is_admin = True
-            session.commit()
-            session.refresh(user)
-        return user
+    try:
+        with get_session() as session:
+            user = session.execute(
+                select(User).where(User.external_id == external_id)
+            ).scalar_one_or_none()
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User not found.",
+                )
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User is inactive.",
+                )
+            if _should_be_admin(user) and not user.is_admin:
+                user.is_admin = True
+                session.commit()
+                session.refresh(user)
+            return user
+    except HTTPException:
+        raise
+    except (RuntimeError, SQLAlchemyError) as exc:
+        _raise_database_unavailable(exc)
 
 
 def get_current_user_public(external_id: str) -> dict[str, object]:
