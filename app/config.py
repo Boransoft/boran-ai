@@ -98,7 +98,12 @@ class Settings(BaseSettings):
     chat_max_context_chars: int = 3200
     rag_per_source_cap_min: int = 2
     rag_per_source_cap_max: int = 4
-    cors_allow_origins: str = "*"
+    cors_allow_origins: str = (
+        "http://localhost:5173,"
+        "http://127.0.0.1:5173,"
+        "http://172.29.96.1:5173,"
+        "http://172.25.16.1:5173"
+    )
     cors_allow_methods: str = "*"
     cors_allow_headers: str = "*"
     cors_allow_credentials: bool = True

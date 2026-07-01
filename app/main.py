@@ -8,7 +8,7 @@ from app.admin.routes import router as admin_router
 from app.api.routes import router as api_router
 from app.auth.routes import router as auth_router
 from app.auth.utils import JwtAuthMiddleware
-from app.config import settings
+from app.config import Settings, settings
 from app.learning.scheduler import consolidation_scheduler
 from app.voice.routes import router as voice_router
 
@@ -16,11 +16,19 @@ from app.voice.routes import router as voice_router
 logger = logging.getLogger("uvicorn.error")
 
 app = FastAPI(title=settings.app_name, version=settings.app_version)
-allow_origins = (
-    ["*"]
-    if settings.cors_allow_origins.strip() == "*"
-    else [item.strip() for item in settings.cors_allow_origins.split(",") if item.strip()]
-)
+
+
+def parse_csv_setting(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+default_dev_origins = parse_csv_setting(Settings.model_fields["cors_allow_origins"].default)
+allow_origins = parse_csv_setting(settings.cors_allow_origins)
+if settings.cors_allow_credentials and settings.cors_allow_origins.strip() == "*":
+    allow_origins = default_dev_origins
+elif not allow_origins:
+    allow_origins = default_dev_origins
+
 allow_methods = (
     ["*"]
     if settings.cors_allow_methods.strip() == "*"
