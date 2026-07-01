@@ -8,7 +8,7 @@ from app.admin.routes import router as admin_router
 from app.api.routes import router as api_router
 from app.auth.routes import router as auth_router
 from app.auth.utils import JwtAuthMiddleware
-from app.config import Settings, settings
+from app.config import settings
 from app.learning.scheduler import consolidation_scheduler
 from app.voice.routes import router as voice_router
 
@@ -17,17 +17,37 @@ logger = logging.getLogger("uvicorn.error")
 
 app = FastAPI(title=settings.app_name, version=settings.app_version)
 
+DEFAULT_DEV_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://172.29.96.1:5173",
+    "http://172.25.16.1:5173",
+]
 
-def parse_csv_setting(value: str) -> list[str]:
-    return [item.strip() for item in value.split(",") if item.strip()]
+
+def parse_origin_setting(value: object) -> list[str]:
+    if isinstance(value, str):
+        if value.strip() == "*":
+            return []
+        return [item.strip() for item in value.split(",") if item.strip()]
+    if isinstance(value, (list, tuple, set)):
+        return [str(item).strip() for item in value if str(item).strip() and str(item).strip() != "*"]
+    return []
 
 
-default_dev_origins = parse_csv_setting(Settings.model_fields["cors_allow_origins"].default)
-allow_origins = parse_csv_setting(settings.cors_allow_origins)
-if settings.cors_allow_credentials and settings.cors_allow_origins.strip() == "*":
-    allow_origins = default_dev_origins
-elif not allow_origins:
-    allow_origins = default_dev_origins
+def merge_origins(*origin_groups: list[str]) -> list[str]:
+    merged: list[str] = []
+    for origins in origin_groups:
+        for origin in origins:
+            if origin not in merged:
+                merged.append(origin)
+    return merged
+
+
+allow_origins = merge_origins(
+    parse_origin_setting(settings.cors_allow_origins),
+    DEFAULT_DEV_ORIGINS,
+)
 
 allow_methods = (
     ["*"]
