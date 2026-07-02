@@ -2,7 +2,9 @@ from fastapi.testclient import TestClient
 
 from app.api import routes
 from app.main import app
+from app.services.context_router import RouteResult, analyze_question
 from app.services.llm_service import LLMAnswer
+from app.services.llm_service import _build_prompt
 
 
 def test_chat_general_message_calls_llm(monkeypatch):
@@ -38,6 +40,7 @@ def test_chat_general_message_calls_llm(monkeypatch):
     assert response.status_code == 200
     payload = response.json()
     assert payload["reply"] == "Merhaba."
+    assert "kaynak belge bulunamad" not in payload["reply"].lower()
     assert payload["used_llm"] is True
     assert payload["llm_error"] == ""
     assert payload["route"]["area"] == "Genel"
@@ -47,6 +50,36 @@ def test_chat_general_message_calls_llm(monkeypatch):
     assert payload["obsidian_files_found"] == 0
     assert calls and calls[0]["message"] == "merhaba"
     assert calls[0]["obsidian_context"] == ""
+    assert calls[0]["document_context"] == ""
+
+
+def test_general_greeting_prompt_does_not_require_source_document():
+    route = analyze_question("merhaba")
+    requires_doc, reason = routes._requires_source_document("merhaba", route)
+    prompt = _build_prompt(
+        message="merhaba",
+        route=route,
+        obsidian_context="",
+        document_context="",
+    )
+
+    assert route.area == "Genel"
+    assert requires_doc is False
+    assert reason == ""
+    assert "Kaynak belge bulunamadi" not in prompt
+    assert "Kaynak belge parcasi" not in prompt
+
+
+def test_uploaded_pdf_request_still_requires_document():
+    route = RouteResult(area="Genel", intent="genel_soru")
+
+    requires_doc, reason = routes._requires_source_document(
+        "yukledigim pdf belgesindeki maddeleri getir",
+        route,
+    )
+
+    assert requires_doc is True
+    assert reason.startswith("explicit_document_keyword")
 
 
 def test_chat_lm_error_is_exposed(monkeypatch):

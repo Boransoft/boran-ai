@@ -12,6 +12,8 @@ LLM_CONTEXT_MAX_CHARS = 3500
 
 SYSTEM_PROMPT = (
     "Sen Boran.ai adli kisisel asistansin. Turkce cevap ver. "
+    "Genel selamlasma ve normal sohbet mesajlarinda belge/RAG kaynagi zorunlu degildir; "
+    "bu mesajlara dogal, kisa ve yardimci cevap ver. "
     "Obsidian context belge deposu degildir; sadece yon ve baglam haritasidir. "
     "Verilen Obsidian baglamini yalnizca alan/kategori yonlendirmesi olarak kullan. "
     "Boran.ai mimari, mobil uygulama, NotebookLM, Obsidian, backend, hafiza, "
@@ -69,11 +71,10 @@ def _build_prompt(message: str, route: RouteResult, obsidian_context: str, docum
     safe_document_context = document_context[:LLM_CONTEXT_MAX_CHARS]
     obsidian = safe_obsidian_context.strip()
     document = safe_document_context.strip()
-    if not document:
-        document = "[Kaynak belge bulunamadi.]"
 
     concepts = ", ".join(route.concepts) if route.concepts else "-"
     obsidian_section = f"\nKisaltilmis Obsidian baglami:\n{obsidian}\n" if obsidian else ""
+    document_section = f"\nKaynak belge parcasi:\n{document}" if document else ""
 
     return (
         f"Kullanici sorusu:\n{message}\n\n"
@@ -82,7 +83,7 @@ def _build_prompt(message: str, route: RouteResult, obsidian_context: str, docum
         f"Niyet: {route.intent or '-'}\n"
         f"Kavramlar: {concepts}\n\n"
         f"{obsidian_section}"
-        f"Kaynak belge parcasi:\n{document}"
+        f"{document_section}"
     )
 
 
