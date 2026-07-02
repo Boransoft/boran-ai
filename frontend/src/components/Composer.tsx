@@ -10,6 +10,7 @@ type ComposerProps = {
   isRecording: boolean;
   voiceStatus: VoiceStatus;
   uploadInProgress: boolean;
+  sendDisabled?: boolean;
   maxUploadSizeMb: number;
   voiceEnabled?: boolean;
   onTextChange: (value: string) => void;
@@ -25,6 +26,7 @@ export default function Composer({
   isRecording,
   voiceStatus,
   uploadInProgress,
+  sendDisabled = false,
   maxUploadSizeMb,
   voiceEnabled = false,
   onTextChange,
@@ -121,7 +123,7 @@ export default function Composer({
           <button
             type="button"
             onClick={onSend}
-            disabled={busy || !text.trim()}
+            disabled={busy || sendDisabled || !text.trim()}
             className="h-12 min-w-[58px] shrink-0 rounded-xl bg-cyan-400 px-3.5 text-[13px] font-semibold text-slate-950 transition hover:bg-cyan-300 active:scale-95 touch-manipulation disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:min-w-[64px] sm:px-4"
           >
             Gonder

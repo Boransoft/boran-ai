@@ -1,5 +1,7 @@
 ﻿from pathlib import Path
 
+from time import perf_counter
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 
 from app.auth.routes import get_current_external_id
@@ -98,6 +100,7 @@ def llm_health() -> dict[str, object]:
         "base_url": health_result.base_url,
         "model": health_result.model,
         "error": health_result.error,
+        "fallback_reason": health_result.fallback_reason,
     }
 
 
@@ -289,6 +292,28 @@ def _build_document_context(req: ChatRequest, user_id: str | None) -> tuple[str,
     return document_context, debug
 
 
+def _empty_document_debug(reason: str) -> dict[str, object]:
+    return {
+        "doc_context_hits": 0,
+        "doc_sources": [],
+        "matched_source_ids": [],
+        "matched_file_names": [],
+        "retrieval_fallback_used": False,
+        "retrieval_debug": {
+            "reason": reason,
+        },
+    }
+
+
+def _has_document_context_hint(req: ChatRequest) -> bool:
+    return bool(
+        req.context_scope == "uploaded_documents"
+        or _clean_document_filter_list(req.source_ids)
+        or _clean_document_filter_list(req.file_names)
+        or req.recent_documents
+    )
+
+
 def _should_use_obsidian_context(route: object, requires_document: bool) -> bool:
     if requires_document:
         return False
@@ -306,11 +331,19 @@ def chat(
     req: ChatRequest,
     request: Request,
 ):
+    started_at = perf_counter()
+
+    def response_time_ms() -> int:
+        return int((perf_counter() - started_at) * 1000)
+
     try:
         route = analyze_question(req.message)
         user_id = req.user_id or getattr(request.state, "auth_external_id", None)
-        document_context, document_debug = _build_document_context(req=req, user_id=user_id)
         requires_doc, document_reason = _requires_source_document(req.message, route)
+        if requires_doc or _has_document_context_hint(req):
+            document_context, document_debug = _build_document_context(req=req, user_id=user_id)
+        else:
+            document_context, document_debug = "", _empty_document_debug("document_context_not_required")
         should_use_obsidian = _should_use_obsidian_context(route, requires_doc)
         obsidian_context = build_obsidian_context(route.obsidian_keys) if should_use_obsidian else ""
         obsidian_debug = _used_obsidian_files(
@@ -331,6 +364,7 @@ def chat(
                 "answer": reply,
                 "used_llm": False,
                 "llm_error": "",
+                "fallback_reason": document_reason or "document_context_missing",
                 "route": route_payload,
                 "domain": route_payload.get("area", ""),
                 "used_contexts": used_contexts,
@@ -341,6 +375,8 @@ def chat(
                 "obsidian_files": obsidian_debug,
                 "document_context": "",
                 "document_context_chars": 0,
+                "document_context_hits": document_debug.get("doc_context_hits", 0),
+                "response_time_ms": response_time_ms(),
                 **document_debug,
             }
         llm_answer = generate_obsidian_answer(
@@ -357,6 +393,7 @@ def chat(
             "answer": reply,
             "used_llm": llm_answer.used_llm,
             "llm_error": llm_answer.error,
+            "fallback_reason": llm_answer.fallback_reason,
             "route": route_payload,
             "domain": route_payload.get("area", ""),
             "used_contexts": used_contexts,
@@ -367,6 +404,8 @@ def chat(
             "obsidian_files": obsidian_debug,
             "document_context": document_context,
             "document_context_chars": len(document_context),
+            "document_context_hits": document_debug.get("doc_context_hits", 0),
+            "response_time_ms": response_time_ms(),
             **document_debug,
         }
 
@@ -378,6 +417,7 @@ def chat(
             "answer": fallback,
             "used_llm": False,
             "llm_error": str(exc),
+            "fallback_reason": "chat_endpoint_exception",
             "route": {},
             "domain": "",
             "used_contexts": {
@@ -386,6 +426,7 @@ def chat(
             },
             "requires_document": False,
             "router_bypass_reason": "chat_endpoint_exception",
+            "response_time_ms": response_time_ms(),
         }
 
 

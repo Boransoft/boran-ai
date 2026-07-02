@@ -57,7 +57,7 @@ Question:
             "temperature": 0.4,
             "max_tokens": 450,
         },
-        timeout=120,
+        timeout=max(1.0, float(settings.chat_llm_timeout_seconds)),
     )
     response.raise_for_status()
     data = response.json()
@@ -422,11 +422,27 @@ def build_reply(
     )
     timings["context_chars"] = float(context_chars)
 
-    used_lm = True
+    no_document_context_reply = ""
+    if context_scope == "uploaded_documents" and not pdf_context:
+        focus_sources = ", ".join((file_names or active_file_names or [])[:6]).strip()
+        if focus_sources:
+            no_document_context_reply = (
+                f"{focus_sources} icin belge baglami bulunamadi. "
+                "Bu nedenle belgeye dayali bir cevap uretemiyorum."
+            )
+        else:
+            no_document_context_reply = (
+                "Yuklenen belgelerde bu soruyu yanitlayacak bir kaynak bulunamadi. "
+                "Bu nedenle belgeye dayali bir cevap uretemiyorum."
+            )
+
+    used_lm = not bool(no_document_context_reply)
     lm_start = perf_counter()
     try:
         prompt_message = message
-        if context_scope == "uploaded_documents":
+        if no_document_context_reply:
+            reply = no_document_context_reply
+        elif context_scope == "uploaded_documents":
             focus_sources = ", ".join((file_names or [])[:6]).strip()
             if not focus_sources:
                 focus_sources = ", ".join((matched_file_names or matched_source_ids)[:6]).strip()
@@ -437,7 +453,9 @@ def build_reply(
                     f"{message}\n\nBelge odagi: Yanitini yuklenen belgelerden uret. "
                     "Baglam yetersizse bunu acikca soyle."
                 )
-        reply = call_lm_studio(prompt_message, context)
+            reply = call_lm_studio(prompt_message, context)
+        else:
+            reply = call_lm_studio(prompt_message, context)
     except Exception as exc:
         used_lm = False
         reply = build_local_fallback_reply(

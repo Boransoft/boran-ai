@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import AudioPlayer from "./AudioPlayer";
 import { toLocalTime } from "../utils/time";
 import type { AppMessage, MessageSource } from "../types/message";
@@ -77,7 +79,7 @@ function extractSources(message: AppMessage): MessageSource[] {
   return normalized;
 }
 
-export default function MessageBubble({ message, onAudioPlay, onAudioEnded, voiceEnabled = false }: MessageBubbleProps) {
+function MessageBubble({ message, onAudioPlay, onAudioEnded, voiceEnabled = false }: MessageBubbleProps) {
   const sources = extractSources(message);
   return (
     <article
@@ -126,3 +128,5 @@ export default function MessageBubble({ message, onAudioPlay, onAudioEnded, voic
     </article>
   );
 }
+
+export default memo(MessageBubble);

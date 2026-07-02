@@ -372,6 +372,7 @@ export default function MainAppPage() {
   const messages = useMessageStore((state) => state.messages);
   const messageActiveUserId = useMessageStore((state) => state.activeUserId);
   const addMessage = useMessageStore((state) => state.addMessage);
+  const updateMessage = useMessageStore((state) => state.updateMessage);
   const setActiveMessageUser = useMessageStore((state) => state.setActiveUser);
   const clearActiveUserMessageCache = useMessageStore((state) => state.clearActiveUserCache);
 
@@ -402,6 +403,7 @@ export default function MainAppPage() {
   const setSystemState = useAppStore((state) => state.setSystemState);
 
   const [text, setText] = useState("");
+  const [chatPending, setChatPending] = useState(false);
   const [uploadToasts, setUploadToasts] = useState<UploadToastItem[]>([]);
   const dismissedUploadToastsRef = useRef<Set<string>>(new Set());
   const voiceActionInFlightRef = useRef(false);
@@ -509,15 +511,23 @@ export default function MainAppPage() {
 
   const onSendText = useCallback(async () => {
     const message = text.trim();
-    if (!token || !message || busy || (VOICE_ENABLED && recorder.isRecording)) {
+    if (!token || !message || chatPending || busy || (VOICE_ENABLED && recorder.isRecording)) {
       return;
     }
 
     const latestFiles = useUploadStore.getState().files;
     const contextHint = buildChatContextHint(latestFiles);
+    const assistantMessageId = createId("assistant");
 
     addMessage(makeMessage("user_text", message));
+    addMessage(
+      makeMessage("assistant_text", "Yanıt hazırlanıyor...", {
+        id: assistantMessageId,
+        status: "processing",
+      }),
+    );
     setText("");
+    setChatPending(true);
     setSystemState("loading", SystemMessages.aiReplyPreparing);
 
     try {
@@ -539,12 +549,21 @@ export default function MainAppPage() {
       if (assistantSources.length > 0) {
         assistantMeta.sources = assistantSources;
       }
+      if (response.used_llm === false && response.llm_error) {
+        assistantMeta.llm_error = response.llm_error;
+      }
+      if (response.fallback_reason) {
+        assistantMeta.fallback_reason = response.fallback_reason;
+      }
+      if (typeof response.response_time_ms === "number") {
+        assistantMeta.response_time_ms = response.response_time_ms;
+      }
 
-      addMessage(
-        makeMessage("assistant_text", response.reply, {
-          meta: assistantMeta,
-        }),
-      );
+      updateMessage(assistantMessageId, {
+        content: response.reply,
+        status: "done",
+        meta: assistantMeta,
+      });
       setSystemState("success", SystemMessages.replyReady);
 
       if ((response.doc_context_hits || 0) === 0 && contextHint && isDocumentIntentQuestion(message)) {
@@ -552,10 +571,26 @@ export default function MainAppPage() {
       }
     } catch (err) {
       const detail = err instanceof Error ? err.message : SystemMessages.messageSendFailed;
-      addMessage(makeMessage("error", `Chat error: ${detail}`));
+      updateMessage(assistantMessageId, {
+        type: "error",
+        content: `Chat error: ${detail}`,
+        status: "failed",
+      });
       setSystemState("error", detail);
+    } finally {
+      setChatPending(false);
     }
-  }, [addMessage, busy, currentUserExternalId, recorder.isRecording, setSystemState, text, token]);
+  }, [
+    addMessage,
+    busy,
+    chatPending,
+    currentUserExternalId,
+    recorder.isRecording,
+    setSystemState,
+    text,
+    token,
+    updateMessage,
+  ]);
 
   const onRequestMicPermission = useCallback(async () => {
     if (!VOICE_ENABLED) {
@@ -571,6 +606,20 @@ export default function MainAppPage() {
       addMessage(makeMessage("error", detail));
     }
   }, [addMessage, recorder, setSystemState]);
+
+  const onAudioPlay = useCallback(() => {
+    if (VOICE_ENABLED) {
+      setVoiceStatus("playing");
+      setSystemState("loading", SystemMessages.voicePlaying);
+    }
+  }, [setSystemState, setVoiceStatus]);
+
+  const onAudioEnded = useCallback(() => {
+    if (VOICE_ENABLED) {
+      setVoiceStatus("idle");
+      setSystemState("idle", SystemMessages.idle);
+    }
+  }, [setSystemState, setVoiceStatus]);
 
   const onVoiceToggle = useCallback(async () => {
     if (!VOICE_ENABLED) {
@@ -800,18 +849,8 @@ export default function MainAppPage() {
 
       <MessageList
         messages={messages}
-        onAudioPlay={() => {
-          if (VOICE_ENABLED) {
-            setVoiceStatus("playing");
-            setSystemState("loading", SystemMessages.voicePlaying);
-          }
-        }}
-        onAudioEnded={() => {
-          if (VOICE_ENABLED) {
-            setVoiceStatus("idle");
-            setSystemState("idle", SystemMessages.idle);
-          }
-        }}
+        onAudioPlay={onAudioPlay}
+        onAudioEnded={onAudioEnded}
         voiceEnabled={VOICE_ENABLED}
       />
 
@@ -828,6 +867,7 @@ export default function MainAppPage() {
         onRequestMicPermission={onRequestMicPermission}
         maxUploadSizeMb={MAX_UPLOAD_SIZE_MB}
         voiceEnabled={VOICE_ENABLED}
+        sendDisabled={chatPending}
       />
     </div>
   );

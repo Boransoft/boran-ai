@@ -28,6 +28,7 @@ type RequestOptions = {
   body?: BodyInit | object;
   token?: string | null;
   headers?: Record<string, string>;
+  timeoutMs?: number;
 };
 
 type UnauthorizedHandler = (() => void) | null;
@@ -126,23 +127,44 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   const requestUrl = normalizePath(path);
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timeoutMs = options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : 0;
+  const timeoutId =
+    controller && timeoutMs > 0
+      ? window.setTimeout(() => {
+          controller.abort();
+        }, timeoutMs)
+      : null;
   let response: Response;
   try {
     response = await fetch(requestUrl, {
       method: options.method || "GET",
       headers,
       body: toBody(options.body, headers),
+      signal: controller?.signal,
     });
   } catch (error) {
-    const detail = error instanceof Error && error.message ? error.message : "Network request failed.";
+    const isAbort = error instanceof DOMException && error.name === "AbortError";
+    const detail = isAbort
+      ? `AI yaniti zaman asimina ugradi (${Math.round(timeoutMs / 1000)} sn). Model su anda yanit vermiyor.`
+      : error instanceof Error && error.message
+        ? error.message
+        : "Network request failed.";
     console.error("[api] network/CORS request failed", {
       apiBaseUrl: API_BASE_URL,
       requestUrl,
       error,
     });
+    if (isAbort) {
+      throw new Error(detail);
+    }
     throw new Error(
       `Backend'e ulasilamadi. API: ${API_BASE_URL}. URL: ${requestUrl}. Detay: ${detail}`,
     );
+  } finally {
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+    }
   }
 
   if (!response.ok) {

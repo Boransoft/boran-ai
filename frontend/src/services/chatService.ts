@@ -15,6 +15,7 @@ export type ChatResponse = {
   memory_size?: number;
   used_llm?: boolean;
   llm_error?: string;
+  fallback_reason?: string;
   route?: {
     area?: string;
     topic?: string;
@@ -34,6 +35,8 @@ export type ChatResponse = {
   router_bypass_reason?: string;
   obsidian_context_chars?: number;
   document_context_chars?: number;
+  document_context_hits?: number;
+  response_time_ms?: number;
   context_hits?: number;
   doc_context_hits?: number;
   doc_sources?: string[];
@@ -54,6 +57,7 @@ export function sendChatMessage(params: {
   return apiRequest<ChatResponse>("/chat", {
     method: "POST",
     token: params.token,
+    timeoutMs: 25_000,
     body: {
       user_id: params.userId,
       message: params.message,
