@@ -58,6 +58,10 @@ def check_lm_studio_health(timeout: float = 3.0) -> LLMHealth:
         return LLMHealth(ready=False, error=str(exc))
 
 
+def _llm_timeout_seconds() -> float:
+    return max(1.0, float(settings.chat_llm_timeout_seconds))
+
+
 def _build_prompt(message: str, route: RouteResult, obsidian_context: str, document_context: str = "") -> str:
     safe_obsidian_context = obsidian_context[:LLM_CONTEXT_MAX_CHARS]
     safe_document_context = document_context[:LLM_CONTEXT_MAX_CHARS]
@@ -150,7 +154,7 @@ def generate_obsidian_answer(
                 "temperature": 0.3,
                 "max_tokens": 500,
             },
-            timeout=120,
+            timeout=_llm_timeout_seconds(),
         )
         response.raise_for_status()
         data = response.json()

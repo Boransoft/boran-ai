@@ -1,52 +1,22 @@
 import type { ApiErrorShape } from "../types/api";
 
-const LOCAL_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
-
-function getBrowserHostname(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  const host = window.location.hostname.trim();
-  return host || null;
-}
-
-function isLocalDevHost(hostname: string): boolean {
-  return LOCAL_DEV_HOSTS.has(hostname.toLowerCase());
-}
-
-function getDefaultProtocol(): string {
-  if (typeof window !== "undefined" && /^https?:$/.test(window.location.protocol)) {
-    return window.location.protocol;
-  }
-  return "http:";
-}
-
-function getDefaultApiBaseUrl(): string {
-  const hostname = getBrowserHostname() || "127.0.0.1";
-  return `${getDefaultProtocol()}//${hostname}:8000`;
-}
+const DEFAULT_API_BASE_URL = "https://boran-ai.onrender.com";
 
 function resolveApiBaseUrl(): string {
-  const envValue = String(import.meta.env.VITE_API_BASE_URL || "").trim();
-  if (!envValue) {
-    return getDefaultApiBaseUrl();
-  }
+  const resolvedValue = String(import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).trim();
 
   let parsedUrl: URL;
   try {
-    parsedUrl = new URL(envValue);
+    parsedUrl = new URL(resolvedValue);
   } catch {
     throw new Error(
-      "Invalid VITE_API_BASE_URL. Use full URL format (example: http://192.168.1.50:8000).",
+      "Invalid VITE_API_BASE_URL. Use full URL format (example: https://boran-ai.onrender.com).",
     );
   }
 
-  const browserHostname = getBrowserHostname();
-  if (browserHostname && isLocalDevHost(parsedUrl.hostname) && !isLocalDevHost(browserHostname)) {
-    parsedUrl.hostname = browserHostname;
-  }
-
-  return parsedUrl.toString();
+  const resolvedUrl = parsedUrl.toString();
+  console.info("[api] using API base URL:", resolvedUrl);
+  return resolvedUrl;
 }
 
 const API_BASE_URL = resolveApiBaseUrl().replace(/\/+$/, "");
@@ -101,15 +71,49 @@ async function parseError(response: Response): Promise<string> {
   const fallback = `${response.status} ${response.statusText}`;
 
   try {
-    const data = (await response.json()) as ApiErrorShape;
+    const data = (await response.clone().json()) as ApiErrorShape;
+    console.error("[api] backend error response", {
+      status: response.status,
+      statusText: response.statusText,
+      body: data,
+    });
     if (typeof data.detail === "string" && data.detail.trim()) {
       return data.detail;
+    }
+    if (Array.isArray(data.detail) && data.detail.length > 0) {
+      return data.detail
+        .map((item) => {
+          if (typeof item === "string") {
+            return item;
+          }
+          if (item && typeof item === "object") {
+            const record = item as Record<string, unknown>;
+            const message = typeof record.msg === "string" ? record.msg : JSON.stringify(record);
+            const location = Array.isArray(record.loc) ? record.loc.join(".") : "";
+            return location ? `${location}: ${message}` : message;
+          }
+          return String(item);
+        })
+        .join("; ");
     }
     if (typeof data.message === "string" && data.message.trim()) {
       return data.message;
     }
     return fallback;
-  } catch {
+  } catch (jsonError) {
+    try {
+      const text = await response.text();
+      if (text.trim()) {
+        console.error("[api] non-json backend error response", {
+          status: response.status,
+          statusText: response.statusText,
+          body: text,
+        });
+        return `${fallback}: ${text.trim().slice(0, 600)}`;
+      }
+    } catch {
+      console.error("[api] failed to read backend error body", jsonError);
+    }
     return fallback;
   }
 }
@@ -121,11 +125,25 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     headers.Authorization = `Bearer ${options.token}`;
   }
 
-  const response = await fetch(normalizePath(path), {
-    method: options.method || "GET",
-    headers,
-    body: toBody(options.body, headers),
-  });
+  const requestUrl = normalizePath(path);
+  let response: Response;
+  try {
+    response = await fetch(requestUrl, {
+      method: options.method || "GET",
+      headers,
+      body: toBody(options.body, headers),
+    });
+  } catch (error) {
+    const detail = error instanceof Error && error.message ? error.message : "Network request failed.";
+    console.error("[api] network/CORS request failed", {
+      apiBaseUrl: API_BASE_URL,
+      requestUrl,
+      error,
+    });
+    throw new Error(
+      `Backend'e ulasilamadi. API: ${API_BASE_URL}. URL: ${requestUrl}. Detay: ${detail}`,
+    );
+  }
 
   if (!response.ok) {
     if (response.status === 401 && unauthorizedHandler) {

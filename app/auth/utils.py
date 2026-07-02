@@ -79,6 +79,7 @@ class JwtAuthMiddleware(BaseHTTPMiddleware):
         self.public_exact_paths = {
             "/",
             "/health",
+            "/llm/health",
             "/openapi.json",
             "/auth/login",
             "/auth/register",
@@ -89,6 +90,7 @@ class JwtAuthMiddleware(BaseHTTPMiddleware):
             "/auth/register",
             "/auth/login",
             "/health",
+            "/llm/health",
             "/db/health",
             "/db/init",
             "/chat/",
@@ -101,29 +103,41 @@ class JwtAuthMiddleware(BaseHTTPMiddleware):
             "/redoc",
         )
 
+    def _is_public_path(self, path: str) -> bool:
+        return (
+            path in self.public_exact_paths
+            or any(path.startswith(prefix) for prefix in self.public_prefixes)
+            or path.startswith("/static")
+        )
+
+    def _unauthorized_response(self, exc: HTTPException) -> JSONResponse:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+        )
+
     async def dispatch(self, request: Request, call_next):
         if request.method.upper() == "OPTIONS":
             return await call_next(request)
 
         path = request.url.path
-        if path in self.public_exact_paths:
-            return await call_next(request)
-
-        if any(path.startswith(prefix) for prefix in self.public_prefixes):
-            return await call_next(request)
-
-        if path.startswith("/static"):
+        auth_header = request.headers.get("Authorization", "").strip()
+        is_public_path = self._is_public_path(path)
+        if is_public_path and not auth_header:
             return await call_next(request)
 
         try:
-            token = extract_bearer_token(request)
-            payload = decode_access_token(token)
-            request.state.auth_external_id = str(payload["sub"])
-            request.state.auth_payload = payload
+            if auth_header:
+                token = extract_bearer_token(request)
+                payload = decode_access_token(token)
+                request.state.auth_external_id = str(payload["sub"])
+                request.state.auth_payload = payload
+            elif not is_public_path:
+                token = extract_bearer_token(request)
+                payload = decode_access_token(token)
+                request.state.auth_external_id = str(payload["sub"])
+                request.state.auth_payload = payload
         except HTTPException as exc:
-            return JSONResponse(
-                status_code=exc.status_code,
-                content={"detail": exc.detail},
-            )
+            return self._unauthorized_response(exc)
 
         return await call_next(request)

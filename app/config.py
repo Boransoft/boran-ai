@@ -96,6 +96,7 @@ class Settings(BaseSettings):
     chat_semantic_context_limit: int = 2
     chat_graph_context_limit: int = 3
     chat_max_context_chars: int = 3200
+    chat_llm_timeout_seconds: float = 20.0
     rag_per_source_cap_min: int = 2
     rag_per_source_cap_max: int = 4
     cors_allow_origins: str = (

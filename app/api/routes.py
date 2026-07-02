@@ -248,16 +248,30 @@ def _build_missing_document_reply(route: object) -> str:
 
 
 def _build_document_context(req: ChatRequest, user_id: str | None) -> tuple[str, dict[str, object]]:
-    retrieval = search_docs_with_metadata(
-        query=req.message,
-        n_results=max(1, req.top_k or settings.chat_doc_context_limit),
-        user_id=user_id,
-        source_ids=_clean_document_filter_list(req.source_ids),
-        file_names=_clean_document_filter_list(req.file_names),
-        recent_documents=req.recent_documents,
-        context_scope=req.context_scope,
-        similarity_threshold=req.similarity_threshold,
-    )
+    try:
+        retrieval = search_docs_with_metadata(
+            query=req.message,
+            n_results=max(1, req.top_k or settings.chat_doc_context_limit),
+            user_id=user_id,
+            source_ids=_clean_document_filter_list(req.source_ids),
+            file_names=_clean_document_filter_list(req.file_names),
+            recent_documents=req.recent_documents,
+            context_scope=req.context_scope,
+            similarity_threshold=req.similarity_threshold,
+        )
+    except Exception as exc:
+        return "", {
+            "doc_context_hits": 0,
+            "doc_sources": [],
+            "matched_source_ids": [],
+            "matched_file_names": [],
+            "retrieval_fallback_used": False,
+            "retrieval_debug": {
+                "error": str(exc),
+                "reason": "retrieval_exception",
+            },
+        }
+
     document_context = "\n\n".join(hit.prompt_block() for hit in retrieval.hits).strip()
     max_chars = max(400, settings.chat_max_context_chars)
     if len(document_context) > max_chars:
@@ -312,6 +326,7 @@ def chat(
         if requires_doc and not document_context.strip():
             reply = _build_missing_document_reply(route)
             return {
+                "user_id": user_id or "",
                 "reply": reply,
                 "answer": reply,
                 "used_llm": False,
@@ -337,6 +352,7 @@ def chat(
         reply = llm_answer.reply
 
         return {
+            "user_id": user_id or "",
             "reply": reply,
             "answer": reply,
             "used_llm": llm_answer.used_llm,
@@ -357,6 +373,7 @@ def chat(
     except Exception as exc:
         fallback = f"Yönlendirme testi sırasında hata oluştu: {exc}"
         return {
+            "user_id": "",
             "reply": fallback,
             "answer": fallback,
             "used_llm": False,
@@ -376,10 +393,17 @@ def _save_upload(file: UploadFile) -> Path:
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename.")
 
+    safe_file_name = Path(file.filename).name
+    if not safe_file_name:
+        raise HTTPException(status_code=400, detail="Missing filename.")
+    ext = Path(safe_file_name).suffix.lower()
+    if ext not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported file extension: {ext or 'none'}")
+
     max_size_bytes = max(1, settings.upload_max_file_size_mb) * 1024 * 1024
     target_dir = Path(settings.ingest_path)
     target_dir.mkdir(parents=True, exist_ok=True)
-    target_file = target_dir / file.filename
+    target_file = target_dir / safe_file_name
 
     written = 0
     try:
