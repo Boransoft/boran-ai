@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import os
-from urllib.parse import urlparse
 
 import requests
 
@@ -50,41 +48,7 @@ class LLMHealth:
     fallback_reason: str = ""
 
 
-def _is_render_runtime() -> bool:
-    return any(
-        os.getenv(name)
-        for name in (
-            "RENDER",
-            "RENDER_SERVICE_ID",
-            "RENDER_SERVICE_NAME",
-            "RENDER_EXTERNAL_HOSTNAME",
-        )
-    )
-
-
-def _is_local_lm_studio_url(base_url: str) -> bool:
-    try:
-        hostname = (urlparse(base_url).hostname or "").lower()
-    except Exception:
-        return False
-    return hostname in {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
-
-
-def local_lm_studio_unavailable_reason() -> str:
-    if _is_render_runtime() and _is_local_lm_studio_url(settings.lm_studio_base_url):
-        return "local_lm_studio_not_reachable_from_render"
-    return ""
-
-
 def check_lm_studio_health(timeout: float = 3.0) -> LLMHealth:
-    fallback_reason = local_lm_studio_unavailable_reason()
-    if fallback_reason:
-        return LLMHealth(
-            ready=False,
-            error="llm_unavailable_on_render",
-            fallback_reason=fallback_reason,
-        )
-
     try:
         response = requests.get(
             f"{settings.lm_studio_base_url}/models",
@@ -129,7 +93,6 @@ def build_lm_studio_fallback(
     error: Exception | str,
     document_context: str = "",
 ) -> str:
-    fallback_reason = local_lm_studio_unavailable_reason()
     document_snippet = document_context.strip()
     if len(document_snippet) > 900:
         document_snippet = document_snippet[:900].rstrip() + "..."
@@ -152,8 +115,7 @@ def build_lm_studio_fallback(
             f"Kaynak parçadan kısa önizleme:\n{document_snippet}"
         )
 
-    reason_text = f" ({fallback_reason})" if fallback_reason else ""
-    return f"Model şu anda bağlı değil. Sistem çalışıyor ancak AI yanıtı üretilemedi{reason_text}."
+    return "Model şu anda bağlı değil. Sistem çalışıyor ancak AI yanıtı üretilemedi."
 
 
 def generate_obsidian_answer(
@@ -162,22 +124,6 @@ def generate_obsidian_answer(
     obsidian_context: str,
     document_context: str = "",
 ) -> LLMAnswer:
-    fallback_reason = local_lm_studio_unavailable_reason()
-    if fallback_reason:
-        error = "llm_unavailable_on_render"
-        return LLMAnswer(
-            reply=build_lm_studio_fallback(
-                message=message,
-                route=route,
-                obsidian_context=obsidian_context,
-                document_context=document_context,
-                error=error,
-            ),
-            used_llm=False,
-            error=error,
-            fallback_reason=fallback_reason,
-        )
-
     prompt = _build_prompt(
         message=message,
         route=route,
